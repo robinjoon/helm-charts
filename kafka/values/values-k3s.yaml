@@ -89,15 +89,9 @@ metrics:
   jmx:
     enabled: false
 
-# 외부 액세스 설정 (클러스터 외부 접근 허용)
+# 외부 액세스 설정 (클러스터 외부 접근 비활성화)
 externalAccess:
-  enabled: true
-  service:
-    type: LoadBalancer
-    ports:
-      external: 9095
-  autoDiscovery:
-    enabled: true
+  enabled: false
 
 # Kafka 클라이언트 설정 (SSL/TLS 사용)
 listeners:

@@ -119,11 +119,16 @@ auth:
   interbroker:
     enabled: false
 
-# SASL 비활성화
+# SASL 설정 (SSL만 사용하므로 더미 값 설정)
 sasl:
-  enabledMechanisms: ""
+  enabledMechanisms: "PLAIN"
   interbroker:
-    mechanism: ""
+    mechanism: "PLAIN"
+  controller:
+    mechanism: "PLAIN"
+  client:
+    users: []
+    passwords: ""
 
 # 프로브 설정 (리소스 절약을 위해 조정)
 livenessProbe:

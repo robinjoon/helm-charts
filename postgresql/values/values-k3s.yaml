@@ -1,0 +1,52 @@
+nameOverride: "postgresql"
+fullnameOverride: "postgresql"
+namespaceOverride: "postgres"
+
+global:
+  defaultStorageClass: "elf-csi-driver"
+  storageClass: "elf-csi-driver"
+# Replication 아키텍처
+architecture: replication
+
+metrics:
+  enabled: true
+
+auth:
+  existingSecret: "postgresql-secret"
+  secretKeys:
+    adminPasswordKey: postgres-password
+    replicationPasswordKey: replication-password
+
+# Primary DB 설정
+primary:
+  # 메모리 설정
+  resources:
+    requests:
+      memory: 256Mi
+    limits:
+      memory: 256Mi
+  # 저장소 설정
+  persistence:
+    storageClass: "nfs-client"
+    enabled: true
+    size: 100Gi
+    accessModes:
+      - ReadWriteMany
+
+# Read Replica 설정
+readReplicas:
+  # Read replica 개수
+  replicaCount: 2
+  # 메모리 설정
+  resources:
+    requests:
+      memory: 256Mi
+    limits:
+      memory: 256Mi
+  # 저장소 설정
+  persistence:
+    storageClass: "nfs-client"
+    enabled: true
+    size: 100Gi
+    accessModes:
+      - ReadWriteMany

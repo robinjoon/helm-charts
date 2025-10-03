@@ -3,8 +3,8 @@ fullnameOverride: "postgresql"
 namespaceOverride: "postgres"
 
 global:
-  defaultStorageClass: "elf-csi-driver"
-  storageClass: "elf-csi-driver"
+  defaultStorageClass: "nfs-client"
+  storageClass: "nfs-client"
 # Replication 아키텍처
 architecture: replication
 

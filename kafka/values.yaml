@@ -96,7 +96,7 @@ serviceBindings:
 ##
 image:
   registry: docker.io
-  repository: bitnami/kafka
+  repository: bitnamilegacy/kafka
   tag: 4.0.0-debian-12-r10
   digest: ""
   ## Specify a imagePullPolicy
@@ -487,7 +487,7 @@ defaultInitContainers:
     ##
     image:
       registry: docker.io
-      repository: bitnami/os-shell
+      repository: bitnamilegacy/os-shell
       tag: 12-debian-12-r51
       digest: ""
       pullPolicy: IfNotPresent
@@ -608,7 +608,7 @@ defaultInitContainers:
     ##
     image:
       registry: docker.io
-      repository: bitnami/kubectl
+      repository: bitnamilegacy/kubectl
       tag: 1.33.4-debian-12-r0
       digest: ""
       ## Specify a imagePullPolicy
@@ -2000,7 +2000,7 @@ metrics:
     ##
     image:
       registry: docker.io
-      repository: bitnami/jmx-exporter
+      repository: bitnamilegacy/jmx-exporter
       tag: 1.4.0-debian-12-r0
       digest: ""
       ## Specify a imagePullPolicy

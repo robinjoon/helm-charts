@@ -6,6 +6,30 @@ global:
 
 # 컨트롤러 노드 설정 (Kafka Brokers)
 controller:
+  # 프로브 설정 (리소스 절약을 위해 조정)
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 120
+    periodSeconds: 10
+    timeoutSeconds: 1
+    failureThreshold: 15
+    successThreshold: 1
   # 고가용성을 위한 3브로커 설정
   replicaCount: 3
 
@@ -129,31 +153,6 @@ sasl:
   client:
     users: []
     passwords: ""
-
-# 프로브 설정 (리소스 절약을 위해 조정)
-livenessProbe:
-  enabled: true
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 3
-  successThreshold: 1
-
-readinessProbe:
-  enabled: true
-  initialDelaySeconds: 5
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 6
-  successThreshold: 1
-
-startupProbe:
-  enabled: true
-  initialDelaySeconds: 30
-  periodSeconds: 10
-  timeoutSeconds: 1
-  failureThreshold: 15
-  successThreshold: 1
 
 # PodDisruptionBudget 설정 (3브로커 환경)
 pdb:

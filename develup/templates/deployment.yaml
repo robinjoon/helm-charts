@@ -40,7 +40,7 @@ spec:
               containerPort: {{ .Values.springBoot.port }}
               protocol: TCP
           env:
-            - name: SPRING_PROFILES_ACTIVE
+            - name: SPRING_PROFILE
               value: {{ .Values.springBoot.profile | quote }}
             - name: SERVER_PORT
               value: {{ .Values.springBoot.port | quote }}

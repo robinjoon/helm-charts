@@ -2,7 +2,7 @@
 replicaCount: 2
 
 image:
-  repository: docker-reg-docker-registry:5000/develup
+  repository: docker-reg-docker-registry.develup.svc.cluster.local:5000/develup
   pullPolicy: IfNotPresent
   tag: "20251010"
 

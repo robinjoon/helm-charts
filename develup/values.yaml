@@ -1,0 +1,146 @@
+# 기본 설정값
+replicaCount: 2
+
+image:
+  repository: docker-reg-docker-registry.develup.svc.cluster.local:5000/develup:20251010
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: "develup"
+fullnameOverride: "develup"
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+  annotations: {}
+
+certificate:
+  enabled: true
+  secretName: develup-tls
+  hosts:
+    - apin.devel-up.co.kr
+  issuer: letsencrypt-prod
+
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: apin.devel-up.co.kr
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: develup-tls
+      hosts:
+        - apin.devel-up.co.kr
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# Spring Boot 애플리케이션 설정
+springBoot:
+  profile: prod
+  port: 8080
+
+  # JVM 옵션
+  javaOpts: "-Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+
+  # 환경 변수
+  env: []
+    # - name: DATABASE_URL
+    #   value: "jdbc:postgresql://postgres:5432/mydb"
+    # - name: REDIS_HOST
+  #   value: "redis-service"
+
+  # Secret에서 환경 변수 로드
+  envFrom: []
+    # - secretRef:
+    #     name: spring-boot-secrets
+    # - configMapRef:
+  #     name: spring-boot-config
+
+# Health Check 설정
+healthCheck:
+  livenessProbe:
+    httpGet:
+      path: /actuator/health/liveness
+      port: 8080
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health/readiness
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# 오토스케일링 설정
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# 배포 전략
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# 노드 선택 및 톨러레이션
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# 볼륨 마운트 (로그, 임시 파일 등)
+volumes:
+  - name: tmp
+    emptyDir: {}
+  - name: logs
+    emptyDir: {}
+
+volumeMounts:
+  - name: tmp
+    mountPath: /tmp
+  - name: logs
+    mountPath: /logs

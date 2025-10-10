@@ -1,0 +1,15 @@
+{{- if .Values.certificate.enabled -}}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "spring-boot-api.fullname" . }}
+spec:
+  secretName: {{.Values.certificate.secretName}}
+  dnsNames:
+    {{- range .Values.certificate.hosts }}
+    - {{ . | quote }}
+    {{- end }}
+  issuerRef:
+    name: {{.Values.certificate.issuer}}
+    kind: ClusterIssuer
+{{- end }}

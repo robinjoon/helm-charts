@@ -40,7 +40,7 @@ certificate:
   secretName: develup-tls
   hosts:
     - apin.devel-up.co.kr
-  issuer: letsencrypt-prod
+  issuer: develup-letsencrypt-dns01
 
 ingress:
   enabled: true

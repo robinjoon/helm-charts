@@ -7,8 +7,8 @@ image:
   tag: "latest"
 
 imagePullSecrets: []
-nameOverride: "develup"
-fullnameOverride: "develup"
+nameOverride: "develup-api"
+fullnameOverride: "develup-api"
 
 serviceAccount:
   create: true

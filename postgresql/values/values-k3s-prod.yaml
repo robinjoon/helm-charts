@@ -1,0 +1,67 @@
+nameOverride: "postgresql"
+fullnameOverride: "postgresql"
+namespaceOverride: "postgres"
+
+global:
+  defaultStorageClass: "local-path"
+  storageClass: "local-path"
+# standalone 아키텍처
+architecture: standalone
+
+metrics:
+  enabled: true
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 512Mi
+      cpu: 200m
+
+auth:
+  existingSecret: "postgresql-secret"
+  secretKeys:
+    adminPasswordKey: postgres-password
+
+# Primary DB 설정
+primary:
+  # CPU, 메모리 설정
+  resources:
+    requests:
+      memory: 1536Mi  # 1.5Gi
+      cpu: 250m
+    limits:
+      memory: 3Gi
+      cpu: 2000m
+  extendedConfiguration: |-
+    # 메모리 설정
+    shared_buffers = 384MB
+    effective_cache_size = 2304MB
+    work_mem = 16MB
+    maintenance_work_mem = 256MB
+    
+    # 연결 설정
+    max_connections = 50
+    
+    # WAL 설정
+    wal_buffers = 16MB
+    checkpoint_completion_target = 0.9
+    
+    # 쿼리 플래너
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    
+    # 병렬 처리
+    max_worker_processes = 4
+    max_parallel_workers_per_gather = 2
+    max_parallel_workers = 4
+  # 저장소 설정
+  persistence:
+    storageClass: "local-path"
+    enabled: true
+    size: 20Gi
+    accessModes:
+      - ReadWriteOnce
+
+backup:
+  enabled: false

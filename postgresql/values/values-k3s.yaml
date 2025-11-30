@@ -34,6 +34,16 @@ primary:
     size: 300Gi
     accessModes:
       - ReadWriteOnce
+  # Security Context 설정 (NFS 볼륨 권한 문제 해결)
+  podSecurityContext:
+    enabled: true
+    fsGroup: 1001
+    fsGroupChangePolicy: Always
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    runAsNonRoot: true
   # Pod Anti-Affinity: Read replica와 다른 노드에 배치
   affinity:
     podAntiAffinity:
@@ -65,6 +75,16 @@ readReplicas:
     size: 300Gi
     accessModes:
       - ReadWriteOnce
+  # Security Context 설정 (NFS 볼륨 권한 문제 해결)
+  podSecurityContext:
+    enabled: true
+    fsGroup: 1001
+    fsGroupChangePolicy: Always
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    runAsNonRoot: true
   # Pod Anti-Affinity: Primary와 다른 노드에 배치
   affinity:
     podAntiAffinity:

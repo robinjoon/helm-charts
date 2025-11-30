@@ -60,13 +60,13 @@ main:
     queue:
       bull:
         redis:
-          host: n8n-valkey-master
+          host: valkey-primary.valkey.svc.cluster.local
           port: 6379
           db: 0
     db:
       type: postgresdb
       postgresdb:
-        host: postgresql-primary.postgresql.svc.cluster.local
+        host: postgresql-primary.postgres.svc.cluster.local
         port: 5432
         database: n8n
         user: n8n

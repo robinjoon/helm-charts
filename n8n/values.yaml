@@ -74,22 +74,21 @@ main:
   # Dictionary for secrets, unlike config:, the values here will end up in the secret file.
   # The YAML entry db.postgresdb.password: my_secret is transformed DB_POSTGRESDB_password=bXlfc2VjcmV0
   # See https://docs.n8n.io/hosting/configuration/environment-variables/
-  secret:
-    queue:
-      bull:
-        redis:
-          password: 'CHANGE_ME'  # Change this to your actual Redis password
-    db:
-      postgresdb:
-        password: 'CHANGE_ME'  # Change this to your actual PostgreSQL password
+  secret: {}
 
   # Extra environmental variables, so you can reference other configmaps and secrets into n8n as env vars.
+  # Using existing Kubernetes Secrets to avoid storing passwords in Git
   extraEnv:
-  #    N8N_DB_POSTGRESDB_NAME:
-  #      valueFrom:
-  #        secretKeyRef:
-  #          name: db-app
-  #          key: dbname
+    DB_POSTGRESDB_PASSWORD:
+      valueFrom:
+        secretKeyRef:
+          name: n8n-secrets
+          key: postgresql-password
+    QUEUE_BULL_REDIS_PASSWORD:
+      valueFrom:
+        secretKeyRef:
+          name: n8n-secrets
+          key: redis-password
   #
   # N8n Kubernetes specific settings
   #
@@ -690,7 +689,9 @@ valkey:
   architecture: standalone
   auth:
     enabled: true
-    password: 'CHANGE_ME'  # Change this to your actual Redis password
+    # Using existing secret to avoid storing password in Git
+    existingSecret: n8n-secrets
+    existingSecretPasswordKey: redis-password
   primary:
     persistence:
       enabled: true

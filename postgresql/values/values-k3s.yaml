@@ -34,6 +34,17 @@ primary:
     size: 300Gi
     accessModes:
       - ReadWriteOnce
+  # Pod Anti-Affinity: Read replica와 다른 노드에 배치
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values:
+                  - read
+          topologyKey: kubernetes.io/hostname
 
 # Read Replica 설정
 readReplicas:
@@ -54,3 +65,14 @@ readReplicas:
     size: 300Gi
     accessModes:
       - ReadWriteOnce
+  # Pod Anti-Affinity: Primary와 다른 노드에 배치
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values:
+                  - primary
+          topologyKey: kubernetes.io/hostname

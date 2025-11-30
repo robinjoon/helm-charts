@@ -1,0 +1,8 @@
+# Ignore actual secrets file to prevent accidental commits
+secret.yaml
+secrets.yaml
+*-secrets.yaml
+
+# Ignore custom values files that may contain sensitive data
+values-*.yaml
+!values-example.yaml

@@ -134,17 +134,16 @@ ingress:
 
 # Resource settings for the container
 resources:
-  {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
   # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+   limits:
+     cpu: 300m
+     memory: 1024Mi
+   requests:
+     cpu: 300m
+     memory: 1024Mi
 
 # Node selector settings for scheduling the pod on specific nodes
 nodeSelector: {}
@@ -290,13 +289,13 @@ configuration:
 # Persistence values for the Home Assistant instance
 persistence:
   # Enable or disable persistence
-  enabled: false
+  enabled: true
   # Access mode for the persistent volume claim
   accessMode: ReadWriteOnce
   # Size of the persistent volume claim
-  size: 5Gi
+  size: 100Gi
   # Storage class for the persistent volume claim
-  storageClass: ""
+  storageClass: "nfs-csi"
   # Name of the existing volume for the StatefulSet, this option can be used to bind to an existing PV
   existingVolume: ""
   # Name of the existing PVC to use with Deployment, this option can be used to use an existing PVC

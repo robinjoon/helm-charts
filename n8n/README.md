@@ -6,11 +6,13 @@ n8n 워크플로우 자동화 플랫폼을 Kubernetes에 배포하기 위한 Hel
 
 - ✅ Queue 모드로 분산 처리 지원
 - ✅ Worker 자동 스케일링 (2~5개)
-- ✅ PostgreSQL 데이터베이스 연동
-- ✅ Valkey(Redis) 기반 작업 큐
+- ✅ **외부 PostgreSQL** 데이터베이스 연동
+- ✅ **외부 Valkey(Redis)** 기반 작업 큐
 - ✅ Traefik Ingress 설정
 - ✅ TLS 인증서 지원
 - ✅ NFS 영구 스토리지
+
+> **참고:** 이 차트는 PostgreSQL과 Valkey를 새로 배포하지 않습니다. 기존에 구축된 외부 서비스를 사용합니다.
 
 ## 아키텍처
 
@@ -23,9 +25,12 @@ n8n 워크플로우 자동화 플랫폼을 Kubernetes에 배포하기 위한 Hel
 │  n8n Main (1)   │ ← UI, API
 └──────┬──────────┘
        │
-┌──────▼──────────┐
-│ Valkey (Redis)  │ ← 작업 큐
-└──────┬──────────┘
+       ├──────────────────┐
+       │                  │
+┌──────▼──────────┐  ┌───▼────────────┐
+│ 외부 Valkey     │  │ 외부 PostgreSQL │
+│ (작업 큐)       │  │ (데이터베이스)   │
+└──────┬──────────┘  └─────────────────┘
        │
 ┌──────▼───────────────┐
 │  Worker (2~5개)      │ ← 워크플로우 실행
@@ -35,9 +40,11 @@ n8n 워크플로우 자동화 플랫폼을 Kubernetes에 배포하기 위한 Hel
 
 ## 배포 전 준비사항
 
+> **중요:** 이 Helm 차트를 배포하기 전에 PostgreSQL과 Valkey가 이미 클러스터에 배포되어 있어야 합니다.
+
 ### 1. PostgreSQL 데이터베이스 준비
 
-PostgreSQL에 n8n용 데이터베이스와 사용자를 생성해야 합니다:
+**외부 PostgreSQL 서비스가 필요합니다.** PostgreSQL에 n8n용 데이터베이스와 사용자를 생성해야 합니다:
 
 ```bash
 # PostgreSQL pod에 접속
@@ -50,10 +57,30 @@ psql -U postgres
 CREATE DATABASE n8n;
 CREATE USER n8n WITH PASSWORD 'your_secure_password';
 GRANT ALL PRIVILEGES ON DATABASE n8n TO n8n;
+
+# n8n 데이터베이스로 연결
+\c n8n
+
+# public schema에 대한 권한 부여
+GRANT ALL ON SCHEMA public TO n8n;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO n8n;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO n8n;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO n8n;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO n8n;
+
 \q
 ```
 
-### 2. Kubernetes Secret 생성
+### 2. Valkey(Redis) 준비
+
+**외부 Valkey 서비스가 필요합니다.** n8n은 작업 큐를 위해 Valkey/Redis를 사용합니다.
+
+예상되는 Valkey 서비스 주소:
+- `valkey-primary.valkey.svc.cluster.local:6379`
+
+다른 주소를 사용하는 경우 `values.yaml`의 `main.config.queue.bull.redis.host`를 수정하세요.
+
+### 3. Kubernetes Secret 생성
 
 ```bash
 # 네임스페이스 생성
@@ -69,9 +96,12 @@ nano secret.yaml
 kubectl apply -f secret.yaml -n n8n
 ```
 
-**⚠️ 중요:** `secret.yaml` 파일은 `.gitignore`에 포함되어 있어 Git에 커밋되지 않습니다.
+**⚠️ 중요:**
+- `secret.yaml` 파일은 `.gitignore`에 포함되어 있어 Git에 커밋되지 않습니다.
+- PostgreSQL 비밀번호는 외부 PostgreSQL에 설정한 n8n 사용자의 비밀번호와 일치해야 합니다.
+- Redis 비밀번호는 외부 Valkey 서비스의 비밀번호와 일치해야 합니다.
 
-### 3. 비밀번호 생성 팁
+### 4. 비밀번호 생성 팁
 
 안전한 랜덤 비밀번호 생성:
 
@@ -118,11 +148,14 @@ kubectl logs -n n8n -l app.kubernetes.io/name=n8n -f
 
 ### 리소스 할당
 
+이 차트가 배포하는 컴포넌트:
+
 | 컴포넌트 | CPU (요청/제한) | Memory (요청/제한) | 스토리지 |
 |----------|----------------|-------------------|----------|
 | Main     | 500m / 1000m   | 512Mi / 1Gi       | 50Gi     |
 | Worker   | 500m / 1000m   | 512Mi / 1Gi       | -        |
-| Valkey   | 250m / 500m    | 256Mi / 512Mi     | 5Gi      |
+
+> **참고:** PostgreSQL과 Valkey는 별도로 배포되어 있으므로 위 리소스에 포함되지 않습니다.
 
 ### Worker 스케일링
 
@@ -136,8 +169,8 @@ kubectl logs -n n8n -l app.kubernetes.io/name=n8n -f
 
 - **URL**: https://homelab.robinjoon.xyz/n8n
 - **네임스페이스**: n8n
-- **데이터베이스**: PostgreSQL (postgresql-primary.postgresql.svc.cluster.local:5432)
-- **큐**: Valkey (n8n-valkey-master:6379)
+- **외부 데이터베이스**: PostgreSQL (postgresql-primary.postgres.svc.cluster.local:5432)
+- **외부 큐**: Valkey (valkey-primary.valkey.svc.cluster.local:6379)
 
 ## 문제 해결
 

@@ -47,6 +47,9 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "n8n.serviceAccountName" . }}
+      # Disable service links to prevent Kubernetes from injecting SERVICE_PORT env vars
+      # which conflicts with n8n's N8N_PORT configuration
+      enableServiceLinks: false
       securityContext:
         {{- toYaml .Values.worker.podSecurityContext | nindent 8 }}
       {{- if .Values.worker.initContainers }}

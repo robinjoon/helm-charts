@@ -57,12 +57,18 @@ main:
       path: /n8n
     executions:
       mode: queue
+    # Using existing external Valkey/Redis service for queue management
+    # Make sure the external Valkey service is running and accessible
     queue:
       bull:
         redis:
           host: valkey-primary.valkey.svc.cluster.local
           port: 6379
           db: 0
+          # Disable TLS for internal cluster communication
+          tls: false
+    # Using existing external PostgreSQL service for database
+    # Make sure the external PostgreSQL service is running with n8n database created
     db:
       type: postgresdb
       postgresdb:
@@ -288,7 +294,18 @@ worker:
   secret: {}
 
   # Extra environmental variables, so you can reference other configmaps and secrets into n8n as env vars.
-  extraEnv: {}
+  # Workers need the same database and Redis credentials as the main process
+  extraEnv:
+    DB_POSTGRESDB_PASSWORD:
+      valueFrom:
+        secretKeyRef:
+          name: n8n-secrets
+          key: postgresql-password
+    QUEUE_BULL_REDIS_PASSWORD:
+      valueFrom:
+        secretKeyRef:
+          name: n8n-secrets
+          key: redis-password
 
   # Define the number of jobs a worker can run in parallel by using the concurrency flag. Default is 10
   concurrency: 10
@@ -684,8 +701,12 @@ extraTemplateManifests: []
 
 # Bitnami Valkey configuration
 # https://artifacthub.io/packages/helm/bitnami/valkey
+#
+# DISABLED: Using existing external Valkey service instead
+# External Valkey connection is configured in main.config.queue.bull.redis section above
 valkey:
-  enabled: true
+  enabled: false
+  # The configuration below is kept for reference but not used when enabled: false
   architecture: standalone
   auth:
     enabled: true

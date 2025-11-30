@@ -65,6 +65,8 @@ main:
           host: valkey-primary.valkey.svc.cluster.local
           port: 6379
           db: 0
+          # Disable TLS for internal cluster communication
+          tls: false
     # Using existing external PostgreSQL service for database
     # Make sure the external PostgreSQL service is running with n8n database created
     db:

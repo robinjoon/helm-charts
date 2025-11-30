@@ -55,6 +55,14 @@ main:
   config:
     n8n:
       path: /n8n
+    executions:
+      mode: queue
+    queue:
+      bull:
+        redis:
+          host: n8n-valkey-master
+          port: 6379
+          db: 0
     db:
       type: postgresdb
       postgresdb:
@@ -67,6 +75,10 @@ main:
   # The YAML entry db.postgresdb.password: my_secret is transformed DB_POSTGRESDB_password=bXlfc2VjcmV0
   # See https://docs.n8n.io/hosting/configuration/environment-variables/
   secret:
+    queue:
+      bull:
+        redis:
+          password: 'CHANGE_ME'  # Change this to your actual Redis password
     db:
       postgresdb:
         password: 'CHANGE_ME'  # Change this to your actual PostgreSQL password
@@ -268,7 +280,7 @@ main:
 # Worker related settings
 #
 worker:
-  enabled: false
+  enabled: true
 
   # additional (to main) config for worker
   config: {}
@@ -315,7 +327,7 @@ worker:
     # existingClaim:
 
   # Number of desired pods.
-  replicaCount: 1
+  replicaCount: 2
 
   # here you can specify the deployment strategy as Recreate or RollingUpdate with optional maxSurge and maxUnavailable
   # If these options are not set, default values are 25%
@@ -325,9 +337,9 @@ worker:
   #  maxUnavailable: "50%"
 
   deploymentStrategy:
-    type: "Recreate"
-    # maxSurge: "50%"
-    # maxUnavailable: "50%"
+    type: "RollingUpdate"
+    maxSurge: "50%"
+    maxUnavailable: "50%"
 
   serviceAccount:
     # Specifies whether a service account should be created
@@ -425,24 +437,20 @@ worker:
     # -- Service port
     port: 80
 
-  resources: {}
-  # We usually recommend not specifying default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
 
   autoscaling:
-    enabled: false
-    minReplicas: 1
-    maxReplicas: 100
-    targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
 
   nodeSelector: {}
   tolerations: []
@@ -678,11 +686,20 @@ extraTemplateManifests: []
 # Bitnami Valkey configuration
 # https://artifacthub.io/packages/helm/bitnami/valkey
 valkey:
-  enabled: false
-  # architecture: standalone
-  #
-  # primary:
-  #   persistence:
-  #     enabled: false
-  #     existingClaim: ""
-  #     size: 2Gi
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    password: 'CHANGE_ME'  # Change this to your actual Redis password
+  primary:
+    persistence:
+      enabled: true
+      storageClass: "nfs-csi"
+      size: 5Gi
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 250m
+        memory: 256Mi

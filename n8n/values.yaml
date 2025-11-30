@@ -36,17 +36,16 @@ ingress:
   enabled: true
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.middlewares: default-n8n-stripprefix@kubernetescrd
   # define a custom ingress class Name, like "traefik" or "nginx"
   className: "traefik"
   hosts:
-    - host: homelab.robinjoon.xyz
+    - host: n8n.homelab.robinjoon.xyz
       paths:
-        - path: /n8n
+        - path: /
           pathType: Prefix
   tls:
     - hosts:
-       - homelab.robinjoon.xyz
+       - n8n.homelab.robinjoon.xyz
       secretName: wildcard-tls-secret
 
 # the main (n8n) application related configuration + Kubernetes specific settings
@@ -55,10 +54,10 @@ main:
   # See https://docs.n8n.io/hosting/configuration/environment-variables/ for all values.
   config:
     n8n:
-      host: homelab.robinjoon.xyz
+      host: n8n.homelab.robinjoon.xyz
       protocol: https
-      editorBaseUrl: https://homelab.robinjoon.xyz/n8n/
-    webhookUrl: https://homelab.robinjoon.xyz/n8n/
+      editorBaseUrl: https://n8n.homelab.robinjoon.xyz/
+    webhookUrl: https://n8n.homelab.robinjoon.xyz/
     executions:
       mode: queue
     # Using existing external Valkey/Redis service for queue management
@@ -675,16 +674,7 @@ webhook:
 #  Takes a list of Kubernetes manifests and merges each resource with a default metadata.labels map and
 #  installs the result.
 #  Use this to add any arbitrary Kubernetes manifests alongside this chart instead of kubectl and scripts.
-extraManifests:
-  - apiVersion: traefik.io/v1alpha1
-    kind: Middleware
-    metadata:
-      name: n8n-stripprefix
-      namespace: default
-    spec:
-      stripPrefix:
-        prefixes:
-          - /n8n
+extraManifests: []
 
 # String extraManifests supports using variables directly within a string manifest.
 # Templates are rendered using the context defined in the values.yaml file, enabling dynamic and flexible content customization.

@@ -107,7 +107,7 @@ main:
     accessModes:
       - ReadWriteOnce
     # Persistent Volume size
-    size: 10Gi
+    size: 50Gi
     # Use an existing PVC
     # existingClaim:
 
@@ -243,11 +243,11 @@ main:
 
   resources:
     limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
       cpu: 500m
       memory: 512Mi
-    requests:
-      cpu: 200m
-      memory: 256Mi
 
   autoscaling:
     enabled: false

@@ -55,6 +55,10 @@ main:
   config:
     n8n:
       path: /n8n
+      host: homelab.robinjoon.xyz
+      protocol: https
+      editorBaseUrl: https://homelab.robinjoon.xyz/n8n
+    webhookUrl: https://homelab.robinjoon.xyz/n8n/
     executions:
       mode: queue
     # Using existing external Valkey/Redis service for queue management

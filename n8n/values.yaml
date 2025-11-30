@@ -416,30 +416,31 @@ worker:
   # command args
   commandArgs: []
 
-  # here you can override the livenessProbe for the main container
-  # it may be used to increase the timeout for the livenessProbe (e.g., to resolve issues like
+  # Worker processes don't expose HTTP endpoints, so we use exec probes instead
+  # to check if the worker process is running
   livenessProbe:
-    httpGet:
-      path: /healthz
-      port: http
-    # initialDelaySeconds: 30
-    # periodSeconds: 10
-    # timeoutSeconds: 5
-    # failureThreshold: 6
-    # successThreshold: 1
+    exec:
+      command:
+        - pgrep
+        - -f
+        - "n8n worker"
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
 
-  # here you can override the readinessProbe for the main container
-  # it may be used to increase the timeout for the readinessProbe (e.g., to resolve issues like
-
+  # Worker processes don't expose HTTP endpoints, so we use exec probes instead
+  # to check if the worker process is running
   readinessProbe:
-    httpGet:
-      path: /healthz
-      port: http
-    # initialDelaySeconds: 30
-    # periodSeconds: 10
-    # timeoutSeconds: 5
-    # failureThreshold: 6
-    # successThreshold: 1
+    exec:
+      command:
+        - pgrep
+        - -f
+        - "n8n worker"
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
 
   # List of initialization containers belonging to the pod. Init containers are executed in order prior to containers being started.
   # See https://kubernetes.io/docs/concepts/workloads/pods/init-containers/

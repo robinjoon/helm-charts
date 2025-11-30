@@ -36,6 +36,7 @@ ingress:
   enabled: true
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    cert-manager.io/cluster-issuer: letsencrypt-prod
   # define a custom ingress class Name, like "traefik" or "nginx"
   className: "traefik"
   hosts:
@@ -46,7 +47,7 @@ ingress:
   tls:
     - hosts:
        - n8n.homelab.robinjoon.xyz
-      secretName: wildcard-tls-secret
+      secretName: n8n-tls
 
 # the main (n8n) application related configuration + Kubernetes specific settings
 # The config: {} dictionary is converted to environmental variables in the ConfigMap.

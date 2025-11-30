@@ -57,12 +57,16 @@ main:
       path: /n8n
     executions:
       mode: queue
+    # Using existing external Valkey/Redis service for queue management
+    # Make sure the external Valkey service is running and accessible
     queue:
       bull:
         redis:
           host: valkey-primary.valkey.svc.cluster.local
           port: 6379
           db: 0
+    # Using existing external PostgreSQL service for database
+    # Make sure the external PostgreSQL service is running with n8n database created
     db:
       type: postgresdb
       postgresdb:
@@ -684,8 +688,12 @@ extraTemplateManifests: []
 
 # Bitnami Valkey configuration
 # https://artifacthub.io/packages/helm/bitnami/valkey
+#
+# DISABLED: Using existing external Valkey service instead
+# External Valkey connection is configured in main.config.queue.bull.redis section above
 valkey:
-  enabled: true
+  enabled: false
+  # The configuration below is kept for reference but not used when enabled: false
   architecture: standalone
   auth:
     enabled: true

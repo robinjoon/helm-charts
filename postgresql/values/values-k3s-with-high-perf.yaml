@@ -1,0 +1,95 @@
+nameOverride: "postgresql"
+fullnameOverride: "postgresql"
+namespaceOverride: "postgresql"
+
+global:
+  defaultStorageClass: ""
+  storageClass: ""
+# Replication 아키텍처
+architecture: replication
+
+metrics:
+  enabled: true
+
+auth:
+  existingSecret: "postgresql-secret"
+  secretKeys:
+    adminPasswordKey: postgres-password
+    replicationPasswordKey: replication-password
+
+# Primary DB 설정
+primary:
+  # 메모리 설정
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2048Mi
+    limits:
+      cpu: 4000m
+      memory: 4096Mi
+  # 저장소 설정
+  persistence:
+    storageClass: "local-path"
+    enabled: true
+    size: 300Gi
+    accessModes:
+      - ReadWriteOnce
+  # Security Context 설정 (NFS 볼륨 권한 문제 해결)
+  podSecurityContext:
+    enabled: true
+    fsGroup: 1001
+    fsGroupChangePolicy: Always
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    runAsNonRoot: true
+  # Pod Anti-Affinity: Read replica와 다른 노드에 배치
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: type
+                operator: In  # [핵심] high-perf 노드가 '아닌' 곳에 배포
+                values:
+                  - high-perf
+
+# Read Replica 설정
+readReplicas:
+  # Read replica 개수
+  replicaCount: 1
+  # 메모리 설정
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1024Mi
+    limits:
+      cpu: 1000m
+      memory: 2048Mi
+  # 저장소 설정
+  persistence:
+    storageClass: "nfs-csi"
+    enabled: true
+    size: 300Gi
+    accessModes:
+      - ReadWriteOnce
+  # Security Context 설정 (NFS 볼륨 권한 문제 해결)
+  podSecurityContext:
+    enabled: true
+    fsGroup: 1001
+    fsGroupChangePolicy: Always
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    runAsNonRoot: true
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: type
+                operator: NotIn  # [핵심] high-perf 노드가 '아닌' 곳에 배포
+                values:
+                  - high-perf

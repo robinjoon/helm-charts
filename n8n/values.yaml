@@ -76,7 +76,7 @@ main:
     db:
       type: postgresdb
       postgresdb:
-        host: postgresql-primary.postgres.svc.cluster.local
+        host: postgresql-primary.postgresql.svc.cluster.local
         port: 5432
         database: n8n
         user: n8n
@@ -114,7 +114,7 @@ main:
     #   set, choosing the default provisioner.  (gp2 on AWS, standard on
     #   GKE, AWS & OpenStack)
     #
-    storageClass: "nfs-csi"
+    storageClass: "local-path"
     # PVC annotations
     #
     # If you need this annotation include it under `values.yml` file and pvc.yml template will add it.
@@ -128,7 +128,7 @@ main:
     accessModes:
       - ReadWriteOnce
     # Persistent Volume size
-    size: 50Gi
+    size: 100Gi
     # Use an existing PVC
     # existingClaim:
 
@@ -264,11 +264,11 @@ main:
 
   resources:
     limits:
-      cpu: 1000m
-      memory: 1Gi
+      cpu: 4
+      memory: 6Gi
     requests:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 2
+      memory: 4Gi
 
   autoscaling:
     enabled: false
@@ -277,7 +277,8 @@ main:
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
 
-  nodeSelector: {}
+  nodeSelector:
+    type: "high-perf"
   tolerations: []
   affinity: {}
 
@@ -289,7 +290,7 @@ main:
 # Worker related settings
 #
 worker:
-  enabled: true
+  enabled: false
 
   # additional (to main) config for worker
   config: {}

@@ -265,11 +265,11 @@ main:
 
   resources:
     limits:
-      cpu: 4
-      memory: 6Gi
-    requests:
       cpu: 2
-      memory: 4Gi
+      memory: 3Gi
+    requests:
+      cpu: 1
+      memory: 2Gi
 
   autoscaling:
     enabled: false
@@ -291,7 +291,7 @@ main:
 # Worker related settings
 #
 worker:
-  enabled: false
+  enabled: true
 
   # additional (to main) config for worker
   config: {}
@@ -462,11 +462,11 @@ worker:
 
   resources:
     limits:
-      cpu: 1000m
+      cpu: 1
       memory: 1Gi
     requests:
-      cpu: 500m
-      memory: 512Mi
+      cpu: 1
+      memory: 1Gi
 
   autoscaling:
     enabled: true
@@ -475,7 +475,8 @@ worker:
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 80
 
-  nodeSelector: {}
+  nodeSelector:
+    type: "high-perf"
   tolerations: []
   affinity: {}
 

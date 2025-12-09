@@ -1,0 +1,121 @@
+# Default values for matter-temperature-sensor
+
+# Docker image configuration
+# Using official Node.js image - no custom Docker build required!
+# Note: Using full node image (not alpine) because Matter.js may require
+# build tools (python, make, g++) for native modules
+image:
+  repository: node
+  pullPolicy: IfNotPresent
+  tag: "22"
+
+imagePullSecrets: []
+
+# Name overrides
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+
+# Container security context
+securityContext:
+  capabilities:
+    add:
+      - NET_ADMIN
+      - NET_RAW
+  runAsNonRoot: false
+  runAsUser: 0
+
+# Service configuration
+# IMPORTANT: When deploying multiple sensors, each must use a different port
+# Example: sensor-1 uses 5540, sensor-2 uses 5541, etc.
+service:
+  type: ClusterIP
+  port: 5540  # Matter protocol port (change for each sensor instance)
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Replica count
+replicaCount: 1
+
+# Node selector - REQUIRED: Bluetooth-enabled high-perf node
+# This ensures the pod is scheduled on nodes with Bluetooth capabilities
+nodeSelector:
+  type: high-perf
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Storage configuration for Matter data persistence
+persistence:
+  enabled: true
+  storageClass: "local-path"
+  accessMode: ReadWriteOnce
+  size: 1Gi
+
+# Environment variables
+env: []
+  # - name: STORAGE_PATH
+  #   value: "/data"
+
+# Liveness probe
+livenessProbe:
+  exec:
+    command:
+      - node
+      - -e
+      - "console.log('OK')"
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+# Readiness probe
+readinessProbe:
+  exec:
+    command:
+      - node
+      - -e
+      - "console.log('OK')"
+  initialDelaySeconds: 50
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Host network mode for Matter protocol
+# Matter devices REQUIRE host network access for mDNS discovery
+# To run multiple sensors on the same node, use different ports for each
+# Example: --set service.port=5540, --set service.port=5541, etc.
+hostNetwork: true
+dnsPolicy: ClusterFirstWithHostNet
+
+# OpenWeatherMap API Configuration
+# Get your free API key from: https://openweathermap.org/api
+openweathermap:
+  enabled: true
+  # Secret name containing the API key
+  # You must create this secret manually before installing the chart
+  # See README.md for instructions on creating the secret
+  secretName: "matter-sensor-openweather"
+  secretKey: "api-key"

@@ -1,0 +1,18 @@
+apiVersion: v2
+name: matter-temperature-sensor
+version: 2.0.0
+appVersion: 2.0.0
+type: application
+description: "Helm Chart for deploying Matter protocol virtual weather station with temperature, humidity, and pressure sensors on Kubernetes"
+keywords:
+  - Matter
+  - IoT
+  - Weather Station
+  - Temperature Sensor
+  - Humidity Sensor
+  - Pressure Sensor
+  - Smart Home
+sources:
+  - https://github.com/matter-js/matter.js
+maintainers:
+  - name: HomeLabIoT

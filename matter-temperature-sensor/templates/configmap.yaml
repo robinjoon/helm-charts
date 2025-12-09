@@ -205,9 +205,9 @@ data:
             console.log(`  - Pressure: ${initialData.pressure}hPa`);
             console.log("");
 
-            // Update all sensors periodically from OpenWeatherMap API
+            // Update function to refresh sensor data from OpenWeatherMap
             let updateCount = 0;
-            setInterval(async () => {
+            const updateSensors = async () => {
                 updateCount++;
                 console.log(`\n[Update #${updateCount}] Updating weather data...`);
 
@@ -243,7 +243,17 @@ data:
                 }
 
                 console.log(`Next update in ${UPDATE_INTERVAL / 60000} minutes\n`);
-            }, UPDATE_INTERVAL);
+            };
+
+            // Start periodic updates immediately after a short delay
+            // This ensures the first update happens soon after startup (not after 10 minutes)
+            console.log("Starting periodic weather updates...");
+            console.log("First update will occur in 1 minute");
+            setTimeout(async () => {
+                await updateSensors();
+                // After first update, continue with regular interval
+                setInterval(updateSensors, UPDATE_INTERVAL);
+            }, 60000); // First update after 1 minute
 
         } catch (error) {
             console.error("Error starting Matter Weather Station:", error);

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: matter-temperature-sensor
+version: 1.0.0
+appVersion: 1.0.0
+type: application
+description: "Helm Chart for deploying Matter protocol virtual temperature sensor on Kubernetes"
+keywords:
+  - Matter
+  - IoT
+  - Temperature Sensor
+  - Smart Home
+sources:
+  - https://github.com/matter-js/matter.js
+maintainers:
+  - name: HomeLabIoT

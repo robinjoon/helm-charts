@@ -1,0 +1,31 @@
+Matter Temperature Sensor has been deployed!
+
+1. Get the application name:
+   {{ include "matter-temperature-sensor.fullname" . }}
+
+2. The Matter device is running on:
+   {{- if .Values.hostNetwork }}
+   Host Network Mode (for better Matter protocol support)
+   {{- else }}
+   Cluster Network
+   {{- end }}
+
+3. Node Selector:
+   {{- range $key, $value := .Values.nodeSelector }}
+   {{ $key }}: {{ $value }}
+   {{- end }}
+
+4. The device is configured to report a fixed temperature of 10°C
+
+5. To commission this device with a Matter controller:
+   - Use your Matter-compatible app (Apple Home, Google Home, etc.)
+   - Scan for new devices
+   - Follow the pairing instructions
+
+6. Get the pod status:
+   kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "matter-temperature-sensor.name" . }}
+
+7. View logs:
+   kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "matter-temperature-sensor.name" . }}
+
+Note: This device requires a node with Bluetooth capabilities (high-perf node).

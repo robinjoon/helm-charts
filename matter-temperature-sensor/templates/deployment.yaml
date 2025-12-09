@@ -37,9 +37,10 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
-            - sh
+            - bash
             - -c
             - |
+              set -e  # Exit on error
               echo "=== Starting setup ==="
               echo "Copying source files from ConfigMap..."
               cp -v /config-source/* /app/
@@ -49,10 +50,8 @@ spec:
               echo ""
               echo "Installing npm dependencies..."
               cd /app
-              npm install --production 2>&1 | tee /tmp/npm-install.log
-              NPM_EXIT_CODE=${PIPESTATUS[0]}
-              echo ""
-              if [ $NPM_EXIT_CODE -eq 0 ]; then
+              if npm install --production; then
+                echo ""
                 echo "✓ Dependencies installed successfully"
                 echo ""
                 echo "Final /app directory contents:"
@@ -61,10 +60,11 @@ spec:
                 echo "node_modules directory:"
                 ls -lh /app/node_modules/ | head -20
               else
-                echo "✗ npm install failed with exit code $NPM_EXIT_CODE"
-                cat /tmp/npm-install.log
-                exit $NPM_EXIT_CODE
+                echo ""
+                echo "✗ npm install failed"
+                exit 1
               fi
+              echo ""
               echo "=== Setup completed successfully ==="
           volumeMounts:
             - name: config-source

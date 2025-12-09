@@ -215,6 +215,24 @@ service:
 
 **다중 센서 배포**: 각 센서마다 다른 포트를 사용하여 같은 노드에서 여러 센서를 실행할 수 있습니다.
 
+### Deployment 전략
+
+**Recreate 전략 사용** (hostNetwork 사용 시 필수):
+
+```yaml
+strategy:
+  type: Recreate
+```
+
+**이유**: hostNetwork를 사용하면 포트가 호스트에 직접 바인딩되므로, RollingUpdate 시 새 Pod가 포트를 사용할 수 없습니다.
+
+**Recreate 전략의 동작**:
+1. 기존 Pod를 먼저 완전히 삭제
+2. 포트 해제
+3. 새 Pod 생성
+
+**주의**: 업그레이드 중 짧은 다운타임이 발생할 수 있습니다 (보통 수 초).
+
 ## 사용 방법
 
 ### 1. Pod 상태 확인

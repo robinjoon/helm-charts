@@ -7,6 +7,10 @@ metadata:
     {{- include "matter-temperature-sensor.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  # Use Recreate strategy to avoid port conflicts during updates
+  # When using hostNetwork, RollingUpdate is not possible as the port is already in use
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "matter-temperature-sensor.selectorLabels" . | nindent 6 }}

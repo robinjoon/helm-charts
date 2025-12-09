@@ -46,6 +46,9 @@ data:
     const PRODUCT_NAME = "Matter Temperature Sensor";
     const PRODUCT_ID = 0x8001;
 
+    // Matter protocol port (can be customized for multiple sensors)
+    const MATTER_PORT = parseInt(process.env.MATTER_PORT || "5540", 10);
+
     // OpenWeatherMap API Configuration
     const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
     const LATITUDE = 37.324146498307215;
@@ -94,6 +97,7 @@ data:
      */
     async function main() {
         console.log("Starting Matter Temperature Sensor (OpenWeatherMap Integration)...");
+        console.log(`Matter port: ${MATTER_PORT}`);
         console.log(`Location: Latitude ${LATITUDE}, Longitude ${LONGITUDE}`);
         console.log(`Update interval: ${UPDATE_INTERVAL / 60000} minutes`);
 
@@ -113,7 +117,7 @@ data:
             const serverNode = await ServerNode.create({
                 id: "temperature-sensor-node",
                 network: {
-                    port: 5540,
+                    port: MATTER_PORT,
                     advertiseOnStartup: true,
                 },
                 productDescription: {

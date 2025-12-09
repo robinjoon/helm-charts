@@ -67,7 +67,7 @@ kubectl get secret matter-sensor-openweather -n iot
 ### 3. Helm Chart 설치
 
 ```bash
-# 기본 설치 (Secret 있으면 자동으로 사용)
+# 단일 센서 설치 (기본 포트 5540 사용)
 helm install matter-sensor ./matter-temperature-sensor -n iot --create-namespace
 
 # 다른 Secret 이름을 사용하는 경우
@@ -75,6 +75,29 @@ helm install matter-sensor ./matter-temperature-sensor \
   --set openweathermap.secretName="my-openweather-secret" \
   -n iot --create-namespace
 ```
+
+### 4. 다중 센서 설치 (선택)
+
+**같은 노드에 여러 온도 센서를 배포**하려면, 각 센서마다 **다른 포트**를 사용해야 합니다:
+
+```bash
+# 첫 번째 센서 (포트 5540)
+helm install matter-sensor-1 ./matter-temperature-sensor \
+  --set service.port=5540 \
+  -n iot
+
+# 두 번째 센서 (포트 5541)
+helm install matter-sensor-2 ./matter-temperature-sensor \
+  --set service.port=5541 \
+  -n iot
+
+# 세 번째 센서 (포트 5542)
+helm install matter-sensor-3 ./matter-temperature-sensor \
+  --set service.port=5542 \
+  -n iot
+```
+
+**중요**: 각 센서는 고유한 PVC를 가지므로 **별도의 Matter 디바이스**로 인식됩니다. Pod 재시작 시에도 재등록이 필요 없습니다.
 
 ## 동작 방식
 
@@ -167,12 +190,20 @@ persistence:
 
 ### 네트워크 설정
 
-Matter 프로토콜의 mDNS 검색을 위해 Host 네트워크 사용:
+Matter 프로토콜의 mDNS 검색을 위해 **Host 네트워크가 필수**입니다:
 
 ```yaml
 hostNetwork: true
 dnsPolicy: ClusterFirstWithHostNet
+
+# 포트 설정 (다중 센서 배포 시 각각 다르게 설정)
+service:
+  port: 5540  # 첫 번째 센서
+  # port: 5541  # 두 번째 센서
+  # port: 5542  # 세 번째 센서
 ```
+
+**다중 센서 배포**: 각 센서마다 다른 포트를 사용하여 같은 노드에서 여러 센서를 실행할 수 있습니다.
 
 ## 사용 방법
 
@@ -197,16 +228,23 @@ kubectl logs -l app.kubernetes.io/name=matter-temperature-sensor -f
 로그 예시:
 ```
 Starting Matter Temperature Sensor (OpenWeatherMap Integration)...
+Matter port: 5540
 Location: Latitude 37.324146498307215, Longitude 127.09286670930126
 Update interval: 10 minutes
+Storage location: /data
 Fetching temperature from OpenWeatherMap...
 ✓ Weather data received: 12.5°C (clear sky)
   Location: Yongin-si, KR
   Humidity: 45%, Pressure: 1013hPa
+Initial temperature: 12.5°C
+Temperature sensor endpoint created
 ✓ Matter Temperature Sensor is running!
+✓ Device can now be commissioned and paired with Matter controllers
 ✓ Current temperature: 12.5°C
 
 [Update #1] Updating temperature...
+Fetching temperature from OpenWeatherMap...
+✓ Weather data received: 12.8°C (clear sky)
 ✓ Temperature updated successfully: 12.8°C
 Next update in 10 minutes
 ```
@@ -306,9 +344,40 @@ kubectl delete pvc -l app.kubernetes.io/name=matter-temperature-sensor
 
 ### Matter 디바이스가 검색되지 않음
 
-1. hostNetwork가 활성화되어 있는지 확인
+1. hostNetwork가 활성화되어 있는지 확인:
+   ```bash
+   kubectl get pods -o yaml | grep hostNetwork
+   # 출력: hostNetwork: true 여야 함
+   ```
 2. 블루투스가 노드에서 활성화되어 있는지 확인
 3. 파드 로그에서 에러 메시지 확인
+4. 포트가 올바르게 설정되었는지 확인:
+   ```bash
+   kubectl logs -l app.kubernetes.io/name=matter-temperature-sensor | grep "Matter port"
+   ```
+
+### 여러 센서 설치 시 포트 충돌
+
+각 센서는 **다른 포트**를 사용해야 합니다:
+
+```bash
+# 에러 예시: "Error: listen EADDRINUSE: address already in use :::5540"
+# 해결: 다른 포트로 재설치
+helm uninstall matter-sensor-2 -n iot
+helm install matter-sensor-2 ./matter-temperature-sensor \
+  --set service.port=5541 \
+  -n iot
+```
+
+### Pod 재시작 후 디바이스가 사라짐
+
+다음을 확인하세요:
+1. PVC가 정상적으로 마운트되어 있는지 확인:
+   ```bash
+   kubectl get pvc -l app.kubernetes.io/name=matter-temperature-sensor
+   ```
+2. serialNumber와 uniqueId가 고정값인지 확인 (ConfigMap)
+3. 포트가 변경되지 않았는지 확인
 
 ## 참고 자료
 

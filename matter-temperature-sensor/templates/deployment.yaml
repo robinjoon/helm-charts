@@ -83,7 +83,7 @@ spec:
             - /app/index.js
           ports:
             - name: matter
-              containerPort: 5540
+              containerPort: {{ .Values.service.port }}
               protocol: TCP
           {{- with .Values.livenessProbe }}
           livenessProbe:
@@ -105,6 +105,8 @@ spec:
               value: "/data"
             - name: NODE_ENV
               value: "production"
+            - name: MATTER_PORT
+              value: "{{ .Values.service.port }}"
             {{- if .Values.openweathermap.enabled }}
             - name: OPENWEATHER_API_KEY
               valueFrom:

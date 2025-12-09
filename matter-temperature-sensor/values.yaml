@@ -38,9 +38,11 @@ securityContext:
   runAsUser: 0
 
 # Service configuration
+# IMPORTANT: When deploying multiple sensors, each must use a different port
+# Example: sensor-1 uses 5540, sensor-2 uses 5541, etc.
 service:
   type: ClusterIP
-  port: 5540
+  port: 5540  # Matter protocol port (change for each sensor instance)
 
 # Resource limits and requests
 resources:
@@ -102,11 +104,11 @@ readinessProbe:
   failureThreshold: 3
 
 # Host network mode for Matter protocol
-# Matter devices may need host network access for mDNS discovery
-# NOTE: Set to false to allow multiple pods on the same node
-# If mDNS discovery doesn't work, you may need to enable this
-hostNetwork: false
-dnsPolicy: ClusterFirst
+# Matter devices REQUIRE host network access for mDNS discovery
+# To run multiple sensors on the same node, use different ports for each
+# Example: --set service.port=5540, --set service.port=5541, etc.
+hostNetwork: true
+dnsPolicy: ClusterFirstWithHostNet
 
 # OpenWeatherMap API Configuration
 # Get your free API key from: https://openweathermap.org/api

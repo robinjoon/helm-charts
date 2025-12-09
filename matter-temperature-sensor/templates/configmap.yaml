@@ -26,24 +26,27 @@ data:
 
   index.js: |
     /**
-     * Matter Temperature Sensor Device
+     * Matter Multi-Sensor Weather Station
      *
-     * This creates a virtual Matter temperature sensor that reports
-     * real-time temperature from OpenWeatherMap API.
+     * This creates a virtual Matter device with multiple sensors:
+     * - Temperature sensor
+     * - Humidity sensor
+     * - Pressure sensor
      *
-     * Temperature is fetched every 10 minutes and updated automatically.
+     * All sensors report real-time data from OpenWeatherMap API.
+     * Data is fetched every 10 minutes and updated automatically.
      */
 
     import { Endpoint, Environment, ServerNode, StorageService } from "@matter/main";
-    import { TemperatureMeasurementServer } from "@matter/main/behaviors";
-    import { TemperatureSensorDevice } from "@matter/main/devices";
+    import { TemperatureMeasurementServer, RelativeHumidityMeasurementServer, PressureMeasurementServer } from "@matter/main/behaviors";
+    import { TemperatureSensorDevice, HumiditySensorDevice, PressureSensorDevice } from "@matter/main/devices";
     import { VendorId } from "@matter/main/types";
 
     // Configuration
-    const DEVICE_NAME = "Weather Temperature Sensor";
+    const DEVICE_NAME = "Weather Station";
     const VENDOR_NAME = "HomeLabIoT";
     const VENDOR_ID = 0xfff1; // Test Vendor ID
-    const PRODUCT_NAME = "Matter Temperature Sensor";
+    const PRODUCT_NAME = "Matter Weather Station";
     const PRODUCT_ID = 0x8001;
 
     // Matter protocol port (can be customized for multiple sensors)
@@ -55,22 +58,29 @@ data:
     const LONGITUDE = 127.09286670930126;
     const UPDATE_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
 
-    // Fallback temperature if API fails
+    // Fallback values if API fails
     const FALLBACK_TEMPERATURE = 10; // 10°C
+    const FALLBACK_HUMIDITY = 50; // 50%
+    const FALLBACK_PRESSURE = 1013; // 1013 hPa (standard atmospheric pressure)
 
     /**
-     * Fetch current temperature from OpenWeatherMap API
+     * Fetch current weather data from OpenWeatherMap API
+     * @returns {Promise<{temperature: number, humidity: number, pressure: number}>}
      */
-    async function fetchTemperature() {
+    async function fetchWeatherData() {
         if (!OPENWEATHER_API_KEY) {
-            console.warn("⚠️ OPENWEATHER_API_KEY not set, using fallback temperature");
-            return FALLBACK_TEMPERATURE;
+            console.warn("⚠️ OPENWEATHER_API_KEY not set, using fallback values");
+            return {
+                temperature: FALLBACK_TEMPERATURE,
+                humidity: FALLBACK_HUMIDITY,
+                pressure: FALLBACK_PRESSURE
+            };
         }
 
         try {
             const url = `https://api.openweathermap.org/data/2.5/weather?lat=${LATITUDE}&lon=${LONGITUDE}&appid=${OPENWEATHER_API_KEY}&units=metric`;
 
-            console.log(`Fetching temperature from OpenWeatherMap...`);
+            console.log(`Fetching weather data from OpenWeatherMap...`);
             const response = await fetch(url);
 
             if (!response.ok) {
@@ -79,24 +89,29 @@ data:
 
             const data = await response.json();
             const temperature = data.main.temp;
+            const humidity = data.main.humidity;
+            const pressure = data.main.pressure;
 
-            console.log(`✓ Weather data received: ${temperature}°C (${data.weather[0].description})`);
+            console.log(`✓ Weather data received: ${temperature}°C, ${humidity}%, ${pressure}hPa (${data.weather[0].description})`);
             console.log(`  Location: ${data.name}, ${data.sys.country}`);
-            console.log(`  Humidity: ${data.main.humidity}%, Pressure: ${data.main.pressure}hPa`);
 
-            return temperature;
+            return { temperature, humidity, pressure };
         } catch (error) {
-            console.error(`✗ Failed to fetch temperature from OpenWeatherMap: ${error.message}`);
-            console.log(`Using fallback temperature: ${FALLBACK_TEMPERATURE}°C`);
-            return FALLBACK_TEMPERATURE;
+            console.error(`✗ Failed to fetch weather data from OpenWeatherMap: ${error.message}`);
+            console.log(`Using fallback values: ${FALLBACK_TEMPERATURE}°C, ${FALLBACK_HUMIDITY}%, ${FALLBACK_PRESSURE}hPa`);
+            return {
+                temperature: FALLBACK_TEMPERATURE,
+                humidity: FALLBACK_HUMIDITY,
+                pressure: FALLBACK_PRESSURE
+            };
         }
     }
 
     /**
-     * Main function to create and start the Matter temperature sensor
+     * Main function to create and start the Matter weather station
      */
     async function main() {
-        console.log("Starting Matter Temperature Sensor (OpenWeatherMap Integration)...");
+        console.log("Starting Matter Weather Station (OpenWeatherMap Integration)...");
         console.log(`Matter port: ${MATTER_PORT}`);
         console.log(`Location: Latitude ${LATITUDE}, Longitude ${LONGITUDE}`);
         console.log(`Update interval: ${UPDATE_INTERVAL / 60000} minutes`);
@@ -109,13 +124,13 @@ data:
             const storageService = environment.get(StorageService);
             console.log(`Storage location: ${storageService.location}`);
 
-            // Fetch initial temperature
-            const initialTemperature = await fetchTemperature();
-            console.log(`Initial temperature: ${initialTemperature}°C`);
+            // Fetch initial weather data
+            const initialData = await fetchWeatherData();
+            console.log(`Initial data: ${initialData.temperature}°C, ${initialData.humidity}%, ${initialData.pressure}hPa`);
 
             // Create the Matter server node
             const serverNode = await ServerNode.create({
-                id: "temperature-sensor-node",
+                id: "weather-station-node",
                 network: {
                     port: MATTER_PORT,
                     advertiseOnStartup: true,
@@ -130,73 +145,120 @@ data:
                     productId: PRODUCT_ID,
                     productName: PRODUCT_NAME,
                     productLabel: DEVICE_NAME,
-                    serialNumber: "TS-HOMELAB-001",
-                    uniqueId: "homelab-temp-sensor-001",
+                    serialNumber: "WS-HOMELAB-001",
+                    uniqueId: "homelab-weather-station-001",
                 },
             });
 
-            // Create temperature sensor endpoint with initial temperature
+            // Create temperature sensor endpoint
             const temperatureSensor = new Endpoint(TemperatureSensorDevice, {
-                id: "temperature-sensor",
+                id: "temperature",
                 temperatureMeasurement: {
                     // Matter uses centi-degrees Celsius (1/100th of a degree)
                     // So 10°C = 1000 centi-degrees
-                    measuredValue: Math.round(initialTemperature * 100),
+                    measuredValue: Math.round(initialData.temperature * 100),
                     minMeasuredValue: -5000, // -50°C
                     maxMeasuredValue: 12000,  // 120°C
                 },
             });
 
-            // Add the temperature sensor endpoint to the server
-            await serverNode.add(temperatureSensor);
+            // Create humidity sensor endpoint
+            const humiditySensor = new Endpoint(HumiditySensorDevice, {
+                id: "humidity",
+                relativeHumidityMeasurement: {
+                    // Matter uses percentage * 100 (0-10000 range for 0-100%)
+                    measuredValue: Math.round(initialData.humidity * 100),
+                    minMeasuredValue: 0,      // 0%
+                    maxMeasuredValue: 10000,  // 100%
+                },
+            });
 
-            console.log("Temperature sensor endpoint created");
+            // Create pressure sensor endpoint
+            const pressureSensor = new Endpoint(PressureSensorDevice, {
+                id: "pressure",
+                pressureMeasurement: {
+                    // Matter uses 1/10 hPa (decipascals)
+                    // So 1013 hPa = 10130 decipascals
+                    measuredValue: Math.round(initialData.pressure * 10),
+                    minMeasuredValue: 8000,   // 800 hPa
+                    maxMeasuredValue: 12000,  // 1200 hPa
+                },
+            });
+
+            // Add all sensor endpoints to the server
+            await serverNode.add(temperatureSensor);
+            await serverNode.add(humiditySensor);
+            await serverNode.add(pressureSensor);
+
+            console.log("✓ Temperature sensor endpoint created");
+            console.log("✓ Humidity sensor endpoint created");
+            console.log("✓ Pressure sensor endpoint created");
 
             // Start the Matter server
             await serverNode.run();
 
-            console.log("✓ Matter Temperature Sensor is running!");
+            console.log("✓ Matter Weather Station is running!");
             console.log("✓ Device can now be commissioned and paired with Matter controllers");
-            console.log(`✓ Current temperature: ${initialTemperature}°C`);
+            console.log(`✓ Current readings:`);
+            console.log(`  - Temperature: ${initialData.temperature}°C`);
+            console.log(`  - Humidity: ${initialData.humidity}%`);
+            console.log(`  - Pressure: ${initialData.pressure}hPa`);
             console.log("");
 
-            // Update temperature periodically from OpenWeatherMap API
+            // Update all sensors periodically from OpenWeatherMap API
             let updateCount = 0;
             setInterval(async () => {
                 updateCount++;
-                console.log(`\n[Update #${updateCount}] Updating temperature...`);
+                console.log(`\n[Update #${updateCount}] Updating weather data...`);
 
-                const newTemperature = await fetchTemperature();
-                const measuredValue = Math.round(newTemperature * 100);
+                const weatherData = await fetchWeatherData();
 
                 try {
+                    // Update temperature sensor
                     await temperatureSensor.set({
                         temperatureMeasurement: {
-                            measuredValue: measuredValue
+                            measuredValue: Math.round(weatherData.temperature * 100)
                         }
                     });
-                    console.log(`✓ Temperature updated successfully: ${newTemperature}°C`);
+                    console.log(`✓ Temperature updated: ${weatherData.temperature}°C`);
+
+                    // Update humidity sensor
+                    await humiditySensor.set({
+                        relativeHumidityMeasurement: {
+                            measuredValue: Math.round(weatherData.humidity * 100)
+                        }
+                    });
+                    console.log(`✓ Humidity updated: ${weatherData.humidity}%`);
+
+                    // Update pressure sensor
+                    await pressureSensor.set({
+                        pressureMeasurement: {
+                            measuredValue: Math.round(weatherData.pressure * 10)
+                        }
+                    });
+                    console.log(`✓ Pressure updated: ${weatherData.pressure}hPa`);
+
                 } catch (error) {
-                    console.error(`✗ Failed to update temperature sensor: ${error.message}`);
+                    console.error(`✗ Failed to update sensors: ${error.message}`);
                 }
 
                 console.log(`Next update in ${UPDATE_INTERVAL / 60000} minutes\n`);
             }, UPDATE_INTERVAL);
 
         } catch (error) {
-            console.error("Error starting Matter Temperature Sensor:", error);
+            console.error("Error starting Matter Weather Station:", error);
             process.exit(1);
         }
     }
 
     // Handle shutdown gracefully
     process.on('SIGINT', () => {
-        console.log("\nShutting down Matter Temperature Sensor...");
+        console.log("\nShutting down Matter Weather Station...");
         process.exit(0);
     });
 
     process.on('SIGTERM', () => {
-        console.log("\nShutting down Matter Temperature Sensor...");
+        console.log("\nShutting down Matter Weather Station...");
         process.exit(0);
     });
 

@@ -1,30 +1,35 @@
-# Matter Temperature Sensor Helm Chart
+# Matter Weather Station Helm Chart
 
-Matter 프로토콜을 사용하는 가상 IoT 온도 센서를 Kubernetes에 배포하기 위한 Helm Chart입니다.
+Matter 프로토콜을 사용하는 가상 IoT 날씨 스테이션을 Kubernetes에 배포하기 위한 Helm Chart입니다.
 
 ## 개요
 
-이 Helm Chart는 Matter.js를 사용하여 구현된 실시간 온도 센서를 배포합니다. **OpenWeatherMap API**를 통해 실제 날씨 데이터를 가져와 Matter 디바이스로 제공합니다.
+이 Helm Chart는 Matter.js를 사용하여 구현된 **다중 센서 날씨 스테이션**을 배포합니다. **OpenWeatherMap API**를 통해 실제 날씨 데이터를 가져와 Matter 디바이스로 제공합니다.
 
 **🎉 별도의 Docker 이미지 빌드가 필요 없습니다!**
 - 소스 코드는 ConfigMap으로 관리
 - 공식 Node.js 이미지 사용 (node:22)
 - 런타임에 자동으로 npm 의존성 설치
 
-**🌡️ 실시간 날씨 연동**
-- OpenWeatherMap API를 사용하여 실제 온도 측정
+**🌡️ 다중 센서 지원 (하나의 디바이스에 3개 센서)**
+- 🌡️ **온도 센서** - 실시간 온도 측정
+- 💧 **습도 센서** - 실시간 습도 측정
+- 🔽 **기압 센서** - 실시간 기압 측정
+- OpenWeatherMap API를 사용하여 실제 날씨 데이터 제공
 - 10분마다 자동 업데이트
-- API 키 없이도 동작 (fallback 온도 10°C)
+- API 키 없이도 동작 (fallback 값: 10°C, 50%, 1013hPa)
+- **기기 등록 1번만** 하면 모든 센서 값 확인 가능!
 
 ## 특징
 
 - ✅ Matter 프로토콜 지원
-- ✅ 온도 센서 디바이스 타입 구현
+- ✅ **3가지 센서가 하나의 디바이스로 통합** (온도, 습도, 기압)
 - ✅ **OpenWeatherMap API 실시간 연동**
-- ✅ **10분마다 자동 온도 업데이트**
+- ✅ **10분마다 자동 데이터 업데이트**
 - ✅ 블루투스 지원 노드에 자동 배포 (high-perf)
 - ✅ 데이터 영구 저장 (PVC)
 - ✅ Host 네트워크 모드 지원 (mDNS 검색용)
+- ✅ **동적 포트 할당으로 다중 스테이션 배포 가능**
 - ✅ Node.js 22 및 matter.js 0.15.6 사용
 - ✅ ConfigMap 기반 소스 코드 관리 - Docker 빌드 불필요!
 - ✅ InitContainer를 통한 자동 의존성 설치
@@ -46,7 +51,10 @@ Matter 프로토콜을 사용하는 가상 IoT 온도 센서를 Kubernetes에 �
 1. [OpenWeatherMap](https://openweathermap.org/api)에서 무료 계정 생성
 2. API 키 발급
 
-**API 키 없이도 설치 가능**합니다. 이 경우 고정값 10°C를 사용합니다.
+**API 키 없이도 설치 가능**합니다. 이 경우 fallback 값을 사용합니다:
+- 온도: 10°C
+- 습도: 50%
+- 기압: 1013hPa
 
 ### 2. Kubernetes Secret 생성 (선택)
 
@@ -76,28 +84,28 @@ helm install matter-sensor ./matter-temperature-sensor \
   -n iot --create-namespace
 ```
 
-### 4. 다중 센서 설치 (선택)
+### 4. 다중 스테이션 설치 (선택)
 
-**같은 노드에 여러 온도 센서를 배포**하려면, 각 센서마다 **다른 포트**를 사용해야 합니다:
+**같은 노드에 여러 날씨 스테이션을 배포**하려면, 각 스테이션마다 **다른 포트**를 사용해야 합니다:
 
 ```bash
-# 첫 번째 센서 (포트 5540)
-helm install matter-sensor-1 ./matter-temperature-sensor \
+# 첫 번째 스테이션 (포트 5540)
+helm install matter-station-1 ./matter-temperature-sensor \
   --set service.port=5540 \
   -n iot
 
-# 두 번째 센서 (포트 5541)
-helm install matter-sensor-2 ./matter-temperature-sensor \
+# 두 번째 스테이션 (포트 5541)
+helm install matter-station-2 ./matter-temperature-sensor \
   --set service.port=5541 \
   -n iot
 
-# 세 번째 센서 (포트 5542)
-helm install matter-sensor-3 ./matter-temperature-sensor \
+# 세 번째 스테이션 (포트 5542)
+helm install matter-station-3 ./matter-temperature-sensor \
   --set service.port=5542 \
   -n iot
 ```
 
-**중요**: 각 센서는 고유한 PVC를 가지므로 **별도의 Matter 디바이스**로 인식됩니다. Pod 재시작 시에도 재등록이 필요 없습니다.
+**중요**: 각 스테이션은 고유한 PVC를 가지므로 **별도의 Matter 디바이스**로 인식됩니다. Pod 재시작 시에도 재등록이 필요 없으며, 각 스테이션마다 온도/습도/기압 3개의 센서를 제공합니다.
 
 ## 동작 방식
 
@@ -105,15 +113,17 @@ helm install matter-sensor-3 ./matter-temperature-sensor \
 2. **Secret**: OpenWeatherMap API 키는 사용자가 직접 생성한 Secret에서 가져옵니다
 3. **InitContainer**: Pod 시작 시 `npm install --production`을 실행하여 의존성을 설치합니다
 4. **Main Container**:
-   - Node.js 애플리케이션이 실행되어 Matter 온도 센서로 동작
-   - OpenWeatherMap API를 통해 현재 온도 조회
-   - 10분마다 자동으로 온도 업데이트
-   - API 키가 없거나 실패 시 fallback 온도(10°C) 사용
+   - Node.js 애플리케이션이 실행되어 Matter 날씨 스테이션으로 동작
+   - **3개의 센서 endpoint 생성**: 온도, 습도, 기압
+   - OpenWeatherMap API를 통해 현재 날씨 데이터 조회
+   - 10분마다 자동으로 모든 센서 업데이트
+   - API 키가 없거나 실패 시 fallback 값 사용 (10°C, 50%, 1013hPa)
+   - **한 번의 기기 등록으로 모든 센서 값 확인 가능**
 
-### 온도 업데이트 주기
+### 데이터 업데이트 주기
 
-- **초기 시작**: 즉시 온도 조회
-- **정기 업데이트**: 10분(600초)마다 자동 조회
+- **초기 시작**: 즉시 날씨 데이터 조회 (온도, 습도, 기압)
+- **정기 업데이트**: 10분(600초)마다 자동 조회 및 모든 센서 업데이트
 - **위치**: 경도 127.09286670930126, 위도 37.324146498307215
 
 소스 코드나 설정을 변경하려면:
@@ -227,25 +237,31 @@ kubectl logs -l app.kubernetes.io/name=matter-temperature-sensor -f
 
 로그 예시:
 ```
-Starting Matter Temperature Sensor (OpenWeatherMap Integration)...
+Starting Matter Weather Station (OpenWeatherMap Integration)...
 Matter port: 5540
 Location: Latitude 37.324146498307215, Longitude 127.09286670930126
 Update interval: 10 minutes
 Storage location: /data
-Fetching temperature from OpenWeatherMap...
-✓ Weather data received: 12.5°C (clear sky)
+Fetching weather data from OpenWeatherMap...
+✓ Weather data received: 12.5°C, 65%, 1015hPa (clear sky)
   Location: Yongin-si, KR
-  Humidity: 45%, Pressure: 1013hPa
-Initial temperature: 12.5°C
-Temperature sensor endpoint created
-✓ Matter Temperature Sensor is running!
+Initial data: 12.5°C, 65%, 1015hPa
+✓ Temperature sensor endpoint created
+✓ Humidity sensor endpoint created
+✓ Pressure sensor endpoint created
+✓ Matter Weather Station is running!
 ✓ Device can now be commissioned and paired with Matter controllers
-✓ Current temperature: 12.5°C
+✓ Current readings:
+  - Temperature: 12.5°C
+  - Humidity: 65%
+  - Pressure: 1015hPa
 
-[Update #1] Updating temperature...
-Fetching temperature from OpenWeatherMap...
-✓ Weather data received: 12.8°C (clear sky)
-✓ Temperature updated successfully: 12.8°C
+[Update #1] Updating weather data...
+Fetching weather data from OpenWeatherMap...
+✓ Weather data received: 12.8°C, 64%, 1014hPa (clear sky)
+✓ Temperature updated: 12.8°C
+✓ Humidity updated: 64%
+✓ Pressure updated: 1014hPa
 Next update in 10 minutes
 ```
 
@@ -255,10 +271,19 @@ Next update in 10 minutes
 - 새 디바이스 추가
 - Matter 디바이스 검색
 - 화면의 지시에 따라 페어링 진행
+- **한 번의 페어링으로 3개의 센서가 모두 추가됩니다**:
+  - 🌡️ 온도 센서
+  - 💧 습도 센서
+  - 🔽 기압 센서
 
-### 4. 온도 확인
+### 4. 센서 값 확인
 
-페어링 후 Matter 컨트롤러 앱에서 **실시간 온도**를 확인할 수 있습니다. 온도는 10분마다 자동으로 업데이트됩니다.
+페어링 후 Matter 컨트롤러 앱에서 **실시간 날씨 데이터**를 확인할 수 있습니다:
+- **온도**: 현재 온도 (°C)
+- **습도**: 현재 습도 (%)
+- **기압**: 현재 기압 (hPa)
+
+모든 센서 값은 10분마다 자동으로 업데이트됩니다.
 
 ### 5. API 키 변경
 

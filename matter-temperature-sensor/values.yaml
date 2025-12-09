@@ -103,8 +103,10 @@ readinessProbe:
 
 # Host network mode for Matter protocol
 # Matter devices may need host network access for mDNS discovery
-hostNetwork: true
-dnsPolicy: ClusterFirstWithHostNet
+# NOTE: Set to false to allow multiple pods on the same node
+# If mDNS discovery doesn't work, you may need to enable this
+hostNetwork: false
+dnsPolicy: ClusterFirst
 
 # OpenWeatherMap API Configuration
 # Get your free API key from: https://openweathermap.org/api

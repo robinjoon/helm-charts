@@ -126,8 +126,8 @@ data:
                     productId: PRODUCT_ID,
                     productName: PRODUCT_NAME,
                     productLabel: DEVICE_NAME,
-                    serialNumber: `TS-${Date.now()}`,
-                    uniqueId: `temperature-sensor-${Date.now()}`,
+                    serialNumber: "TS-HOMELAB-001",
+                    uniqueId: "homelab-temp-sensor-001",
                 },
             });
 

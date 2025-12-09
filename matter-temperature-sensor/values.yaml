@@ -54,7 +54,7 @@ replicaCount: 1
 # Node selector - REQUIRED: Bluetooth-enabled high-perf node
 # This ensures the pod is scheduled on nodes with Bluetooth capabilities
 nodeSelector:
-  kubernetes.io/hostname: high-perf
+  type: high-perf
 
 # Tolerations
 tolerations: []

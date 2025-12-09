@@ -205,15 +205,16 @@ data:
             console.log(`  - Pressure: ${initialData.pressure}hPa`);
             console.log("");
 
-            // Update function to refresh sensor data from OpenWeatherMap
+            // Recursive function for periodic weather updates
+            // This ensures reliable execution and proper error handling
             let updateCount = 0;
-            const updateSensors = async () => {
-                updateCount++;
-                console.log(`\n[Update #${updateCount}] Updating weather data...`);
-
-                const weatherData = await fetchWeatherData();
-
+            const scheduleNextUpdate = async () => {
                 try {
+                    updateCount++;
+                    console.log(`\n[Update #${updateCount}] ${new Date().toISOString()} - Fetching weather data...`);
+
+                    const weatherData = await fetchWeatherData();
+
                     // Update temperature sensor
                     await temperatureSensor.set({
                         temperatureMeasurement: {
@@ -237,23 +238,24 @@ data:
                         }
                     });
                     console.log(`✓ Pressure updated: ${weatherData.pressure}hPa`);
+                    console.log(`✓ All sensors updated successfully`);
 
                 } catch (error) {
                     console.error(`✗ Failed to update sensors: ${error.message}`);
+                    console.error(error.stack);
+                } finally {
+                    // Schedule next update regardless of success/failure
+                    const nextUpdateTime = new Date(Date.now() + UPDATE_INTERVAL);
+                    console.log(`⏰ Next update scheduled at: ${nextUpdateTime.toISOString()} (in ${UPDATE_INTERVAL / 60000} minutes)\n`);
+                    setTimeout(scheduleNextUpdate, UPDATE_INTERVAL);
                 }
-
-                console.log(`Next update in ${UPDATE_INTERVAL / 60000} minutes\n`);
             };
 
-            // Start periodic updates immediately after a short delay
-            // This ensures the first update happens soon after startup (not after 10 minutes)
-            console.log("Starting periodic weather updates...");
-            console.log("First update will occur in 1 minute");
-            setTimeout(async () => {
-                await updateSensors();
-                // After first update, continue with regular interval
-                setInterval(updateSensors, UPDATE_INTERVAL);
-            }, 60000); // First update after 1 minute
+            // Start periodic updates with first update after 1 minute
+            console.log("🚀 Starting periodic weather update system...");
+            console.log(`📅 Update interval: ${UPDATE_INTERVAL / 60000} minutes`);
+            console.log(`⏰ First update in: 1 minute`);
+            setTimeout(scheduleNextUpdate, 60000);
 
         } catch (error) {
             console.error("Error starting Matter Weather Station:", error);

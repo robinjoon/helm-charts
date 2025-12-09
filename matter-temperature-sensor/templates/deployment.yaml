@@ -40,13 +40,32 @@ spec:
             - sh
             - -c
             - |
+              echo "=== Starting setup ==="
               echo "Copying source files from ConfigMap..."
               cp -v /config-source/* /app/
+              echo ""
+              echo "Source files copied:"
+              ls -lh /app/
+              echo ""
               echo "Installing npm dependencies..."
               cd /app
-              npm install --production
-              echo "Setup completed successfully"
-              ls -la /app
+              npm install --production 2>&1 | tee /tmp/npm-install.log
+              NPM_EXIT_CODE=${PIPESTATUS[0]}
+              echo ""
+              if [ $NPM_EXIT_CODE -eq 0 ]; then
+                echo "✓ Dependencies installed successfully"
+                echo ""
+                echo "Final /app directory contents:"
+                ls -lah /app/
+                echo ""
+                echo "node_modules directory:"
+                ls -lh /app/node_modules/ | head -20
+              else
+                echo "✗ npm install failed with exit code $NPM_EXIT_CODE"
+                cat /tmp/npm-install.log
+                exit $NPM_EXIT_CODE
+              fi
+              echo "=== Setup completed successfully ==="
           volumeMounts:
             - name: config-source
               mountPath: /config-source

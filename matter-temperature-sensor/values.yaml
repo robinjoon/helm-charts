@@ -2,10 +2,12 @@
 
 # Docker image configuration
 # Using official Node.js image - no custom Docker build required!
+# Note: Using full node image (not alpine) because Matter.js may require
+# build tools (python, make, g++) for native modules
 image:
   repository: node
   pullPolicy: IfNotPresent
-  tag: "22-alpine"
+  tag: "22"
 
 imagePullSecrets: []
 

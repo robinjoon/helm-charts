@@ -31,26 +31,28 @@ spec:
       hostNetwork: true
       dnsPolicy: {{ .Values.dnsPolicy }}
       {{- end }}
-      # Init container to install npm dependencies
+      # Init container to copy source files and install npm dependencies
       initContainers:
-        - name: npm-install
+        - name: setup-app
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
             - sh
             - -c
             - |
+              echo "Copying source files from ConfigMap..."
+              cp -v /config-source/* /app/
               echo "Installing npm dependencies..."
               cd /app
               npm install --production
-              echo "Dependencies installed successfully"
+              echo "Setup completed successfully"
+              ls -la /app
           volumeMounts:
-            - name: app-source
-              mountPath: /app
+            - name: config-source
+              mountPath: /config-source
               readOnly: true
-            - name: node-modules
-              mountPath: /app/node_modules
-          workingDir: /app
+            - name: app-workdir
+              mountPath: /app
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -77,14 +79,13 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
-            - name: app-source
+            - name: app-workdir
               mountPath: /app
-              readOnly: true
-            - name: node-modules
-              mountPath: /app/node_modules
           env:
             - name: STORAGE_PATH
               value: "/data"
+            - name: NODE_ENV
+              value: "production"
           {{- with .Values.env }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -109,8 +110,8 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
-        - name: app-source
+        - name: config-source
           configMap:
             name: {{ include "matter-temperature-sensor.fullname" . }}-app
-        - name: node-modules
+        - name: app-workdir
           emptyDir: {}

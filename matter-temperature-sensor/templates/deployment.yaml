@@ -105,6 +105,13 @@ spec:
               value: "/data"
             - name: NODE_ENV
               value: "production"
+            {{- if .Values.openweathermap.enabled }}
+            - name: OPENWEATHER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "matter-temperature-sensor.fullname" . }}-openweather
+                  key: api-key
+            {{- end }}
           {{- with .Values.env }}
             {{- toYaml . | nindent 12 }}
           {{- end }}

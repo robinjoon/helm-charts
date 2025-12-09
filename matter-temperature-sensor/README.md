@@ -4,21 +4,28 @@ Matter 프로토콜을 사용하는 가상 IoT 온도 센서를 Kubernetes에 �
 
 ## 개요
 
-이 Helm Chart는 Matter.js를 사용하여 구현된 가상 온도 센서를 배포합니다. 현재는 고정값 10°C를 반환하며, 향후 날씨 API와 연동할 수 있도록 설계되었습니다.
+이 Helm Chart는 Matter.js를 사용하여 구현된 실시간 온도 센서를 배포합니다. **OpenWeatherMap API**를 통해 실제 날씨 데이터를 가져와 Matter 디바이스로 제공합니다.
 
 **🎉 별도의 Docker 이미지 빌드가 필요 없습니다!**
 - 소스 코드는 ConfigMap으로 관리
-- 공식 Node.js 이미지 사용 (node:22-alpine)
+- 공식 Node.js 이미지 사용 (node:22)
 - 런타임에 자동으로 npm 의존성 설치
+
+**🌡️ 실시간 날씨 연동**
+- OpenWeatherMap API를 사용하여 실제 온도 측정
+- 10분마다 자동 업데이트
+- API 키 없이도 동작 (fallback 온도 10°C)
 
 ## 특징
 
 - ✅ Matter 프로토콜 지원
 - ✅ 온도 센서 디바이스 타입 구현
+- ✅ **OpenWeatherMap API 실시간 연동**
+- ✅ **10분마다 자동 온도 업데이트**
 - ✅ 블루투스 지원 노드에 자동 배포 (high-perf)
 - ✅ 데이터 영구 저장 (PVC)
 - ✅ Host 네트워크 모드 지원 (mDNS 검색용)
-- ✅ Node.js 22 및 matter.js 라이브러리 사용
+- ✅ Node.js 22 및 matter.js 0.15.6 사용
 - ✅ ConfigMap 기반 소스 코드 관리 - Docker 빌드 불필요!
 - ✅ InitContainer를 통한 자동 의존성 설치
 
@@ -26,39 +33,86 @@ Matter 프로토콜을 사용하는 가상 IoT 온도 센서를 Kubernetes에 �
 
 - Kubernetes 1.19+
 - Helm 3.0+
-- 블루투스 기능이 있는 노드 (label: `kubernetes.io/hostname: high-perf`)
+- 블루투스 기능이 있는 노드 (label: `type: high-perf`)
 - PersistentVolume 프로비저너 (기본: local-path)
+- (선택) OpenWeatherMap API 키 - [무료 가입](https://openweathermap.org/api)
 
 ## 설치
 
-### Helm Chart 설치 (Docker 빌드 불필요!)
+### 1. OpenWeatherMap API 키 발급 (선택)
+
+실제 날씨 데이터를 사용하려면:
+
+1. [OpenWeatherMap](https://openweathermap.org/api)에서 무료 계정 생성
+2. API 키 발급
+3. `values.yaml`에 API 키 설정
+
+**API 키 없이도 설치 가능**합니다. 이 경우 고정값 10°C를 사용합니다.
+
+### 2. values.yaml 설정
+
+```yaml
+openweathermap:
+  enabled: true
+  apiKey: "your-api-key-here"  # OpenWeatherMap API 키 입력
+```
+
+### 3. Helm Chart 설치
 
 ```bash
-# 기본 설정으로 설치
+# API 키와 함께 설치
+helm install matter-sensor ./matter-temperature-sensor \
+  --set openweathermap.apiKey="your-api-key-here"
+
+# 또는 values 파일 수정 후 설치
 helm install matter-sensor ./matter-temperature-sensor
 
 # 네임스페이스 지정하여 설치
 helm install matter-sensor ./matter-temperature-sensor -n iot --create-namespace
-
-# 커스텀 values 파일 사용
-helm install matter-sensor ./matter-temperature-sensor -f custom-values.yaml
 ```
 
 ## 동작 방식
 
 1. **ConfigMap**: `index.js`와 `package.json` 파일이 ConfigMap으로 저장됩니다
-2. **InitContainer**: Pod 시작 시 `npm install --production`을 실행하여 의존성을 설치합니다
-3. **Main Container**: Node.js 애플리케이션이 실행되어 Matter 온도 센서로 동작합니다
+2. **Secret**: OpenWeatherMap API 키가 Secret으로 저장됩니다
+3. **InitContainer**: Pod 시작 시 `npm install --production`을 실행하여 의존성을 설치합니다
+4. **Main Container**:
+   - Node.js 애플리케이션이 실행되어 Matter 온도 센서로 동작
+   - OpenWeatherMap API를 통해 현재 온도 조회
+   - 10분마다 자동으로 온도 업데이트
+   - API 실패 시 fallback 온도(10°C) 사용
 
-소스 코드를 수정하려면 `templates/configmap.yaml` 파일의 `index.js` 또는 `package.json` 섹션을 수정하고 Helm 차트를 업그레이드하면 됩니다:
+### 온도 업데이트 주기
+
+- **초기 시작**: 즉시 온도 조회
+- **정기 업데이트**: 10분(600초)마다 자동 조회
+- **위치**: 경도 127.09286670930126, 위도 37.324146498307215
+
+소스 코드나 설정을 변경하려면:
 
 ```bash
+# ConfigMap 수정 후
 helm upgrade matter-sensor ./matter-temperature-sensor
+
+# API 키 변경
+helm upgrade matter-sensor ./matter-temperature-sensor \
+  --set openweathermap.apiKey="new-api-key"
 ```
 
 ## 설정
 
 주요 설정 옵션은 `values.yaml`에서 확인할 수 있습니다:
+
+### OpenWeatherMap API 설정
+
+```yaml
+openweathermap:
+  enabled: true
+  apiKey: "your-api-key-here"  # OpenWeatherMap API 키
+```
+
+- `enabled`: OpenWeatherMap 통합 활성화 (true/false)
+- `apiKey`: OpenWeatherMap API 키 (없으면 fallback 온도 사용)
 
 ### 이미지 설정
 
@@ -66,7 +120,7 @@ helm upgrade matter-sensor ./matter-temperature-sensor
 image:
   repository: node  # 공식 Node.js 이미지 사용
   pullPolicy: IfNotPresent
-  tag: "22-alpine"
+  tag: "22"  # 전체 이미지 (빌드 도구 포함)
 ```
 
 ### 노드 선택기 (필수)
@@ -75,7 +129,7 @@ image:
 
 ```yaml
 nodeSelector:
-  kubernetes.io/hostname: high-perf
+  type: high-perf
 ```
 
 ### 리소스 설정
@@ -121,12 +175,29 @@ kubectl get pods -l app.kubernetes.io/name=matter-temperature-sensor
 
 InitContainer의 npm install 로그를 확인:
 ```bash
-kubectl logs -l app.kubernetes.io/name=matter-temperature-sensor -c npm-install
+kubectl logs -l app.kubernetes.io/name=matter-temperature-sensor -c setup-app
 ```
 
-애플리케이션 로그 확인:
+애플리케이션 로그 확인 (실시간 온도 업데이트 확인):
 ```bash
 kubectl logs -l app.kubernetes.io/name=matter-temperature-sensor -f
+```
+
+로그 예시:
+```
+Starting Matter Temperature Sensor (OpenWeatherMap Integration)...
+Location: Latitude 37.324146498307215, Longitude 127.09286670930126
+Update interval: 10 minutes
+Fetching temperature from OpenWeatherMap...
+✓ Weather data received: 12.5°C (clear sky)
+  Location: Yongin-si, KR
+  Humidity: 45%, Pressure: 1013hPa
+✓ Matter Temperature Sensor is running!
+✓ Current temperature: 12.5°C
+
+[Update #1] Updating temperature...
+✓ Temperature updated successfully: 12.8°C
+Next update in 10 minutes
 ```
 
 ### 3. Matter 디바이스 페어링
@@ -138,17 +209,30 @@ kubectl logs -l app.kubernetes.io/name=matter-temperature-sensor -f
 
 ### 4. 온도 확인
 
-페어링 후 Matter 컨트롤러 앱에서 온도 센서의 현재 값(10°C)을 확인할 수 있습니다.
+페어링 후 Matter 컨트롤러 앱에서 **실시간 온도**를 확인할 수 있습니다. 온도는 10분마다 자동으로 업데이트됩니다.
 
-### 5. 소스 코드 수정
+### 5. API 키 변경
 
-`templates/configmap.yaml` 파일을 수정한 후:
+운영 중에도 API 키를 변경할 수 있습니다:
 
 ```bash
-# Helm 차트 업그레이드
-helm upgrade matter-sensor ./matter-temperature-sensor
+# API 키 업데이트
+helm upgrade matter-sensor ./matter-temperature-sensor \
+  --set openweathermap.apiKey="new-api-key"
+```
 
-# ConfigMap이 변경되면 자동으로 Pod가 재시작됩니다
+### 6. 위치 변경
+
+다른 위치의 온도를 측정하려면 `templates/configmap.yaml`에서 LATITUDE와 LONGITUDE를 수정:
+
+```javascript
+const LATITUDE = 37.324146498307215;   // 새 위도
+const LONGITUDE = 127.09286670930126;  // 새 경도
+```
+
+수정 후:
+```bash
+helm upgrade matter-sensor ./matter-temperature-sensor
 ```
 
 ## 제거
@@ -165,9 +249,10 @@ kubectl delete pvc -l app.kubernetes.io/name=matter-temperature-sensor
 
 ## 향후 개발 계획
 
-- [ ] 날씨 API 연동 (실시간 온도 데이터)
-- [ ] 추가 센서 타입 지원 (습도, 기압 등)
-- [ ] 환경 변수를 통한 센서 값 설정
+- [x] 날씨 API 연동 (실시간 온도 데이터) ✅ **완료**
+- [ ] OpenWeatherMap API에서 습도, 기압 데이터도 추가
+- [ ] 추가 센서 타입 지원 (습도 센서, 기압 센서 등)
+- [ ] 위치 좌표를 환경 변수로 설정 가능하게
 - [ ] Prometheus 메트릭 노출
 
 ## 문제 해결
@@ -181,13 +266,27 @@ kubectl delete pvc -l app.kubernetes.io/name=matter-temperature-sensor
 
 2. InitContainer 로그 확인 (npm install 실패 가능성):
    ```bash
-   kubectl logs -l app.kubernetes.io/name=matter-temperature-sensor -c npm-install
+   kubectl logs -l app.kubernetes.io/name=matter-temperature-sensor -c setup-app
    ```
 
 ### npm install이 실패함
 
 1. 네트워크 연결 확인 (npmjs.com 접근 가능한지)
 2. 프록시 설정이 필요한 경우 initContainer에 환경 변수 추가
+
+### OpenWeatherMap API에서 온도를 가져오지 못함
+
+1. API 키가 올바른지 확인:
+   ```bash
+   kubectl get secret matter-sensor-openweather -o jsonpath='{.data.api-key}' | base64 -d
+   ```
+
+2. 로그에서 에러 확인:
+   ```bash
+   kubectl logs -l app.kubernetes.io/name=matter-temperature-sensor -f
+   ```
+
+3. API 키가 없으면 fallback 온도(10°C)를 사용합니다
 
 ### Matter 디바이스가 검색되지 않음
 

@@ -29,10 +29,9 @@ data:
      * Matter Temperature Sensor Device
      *
      * This creates a virtual Matter temperature sensor that reports
-     * a fixed temperature of 10°C (Celsius).
+     * real-time temperature from OpenWeatherMap API.
      *
-     * In the future, this can be extended to fetch temperature from
-     * a weather API.
+     * Temperature is fetched every 10 minutes and updated automatically.
      */
 
     import { Endpoint, Environment, ServerNode, StorageService } from "@matter/main";
@@ -41,19 +40,62 @@ data:
     import { VendorId } from "@matter/main/types";
 
     // Configuration
-    const DEVICE_NAME = "Virtual Temperature Sensor";
+    const DEVICE_NAME = "Weather Temperature Sensor";
     const VENDOR_NAME = "HomeLabIoT";
     const VENDOR_ID = 0xfff1; // Test Vendor ID
     const PRODUCT_NAME = "Matter Temperature Sensor";
     const PRODUCT_ID = 0x8001;
-    const FIXED_TEMPERATURE = 10; // 10°C - Fixed temperature value
+
+    // OpenWeatherMap API Configuration
+    const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
+    const LATITUDE = 37.324146498307215;
+    const LONGITUDE = 127.09286670930126;
+    const UPDATE_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+    // Fallback temperature if API fails
+    const FALLBACK_TEMPERATURE = 10; // 10°C
+
+    /**
+     * Fetch current temperature from OpenWeatherMap API
+     */
+    async function fetchTemperature() {
+        if (!OPENWEATHER_API_KEY) {
+            console.warn("⚠️ OPENWEATHER_API_KEY not set, using fallback temperature");
+            return FALLBACK_TEMPERATURE;
+        }
+
+        try {
+            const url = `https://api.openweathermap.org/data/2.5/weather?lat=${LATITUDE}&lon=${LONGITUDE}&appid=${OPENWEATHER_API_KEY}&units=metric`;
+
+            console.log(`Fetching temperature from OpenWeatherMap...`);
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            const temperature = data.main.temp;
+
+            console.log(`✓ Weather data received: ${temperature}°C (${data.weather[0].description})`);
+            console.log(`  Location: ${data.name}, ${data.sys.country}`);
+            console.log(`  Humidity: ${data.main.humidity}%, Pressure: ${data.main.pressure}hPa`);
+
+            return temperature;
+        } catch (error) {
+            console.error(`✗ Failed to fetch temperature from OpenWeatherMap: ${error.message}`);
+            console.log(`Using fallback temperature: ${FALLBACK_TEMPERATURE}°C`);
+            return FALLBACK_TEMPERATURE;
+        }
+    }
 
     /**
      * Main function to create and start the Matter temperature sensor
      */
     async function main() {
-        console.log("Starting Matter Temperature Sensor...");
-        console.log(`Fixed Temperature: ${FIXED_TEMPERATURE}°C`);
+        console.log("Starting Matter Temperature Sensor (OpenWeatherMap Integration)...");
+        console.log(`Location: Latitude ${LATITUDE}, Longitude ${LONGITUDE}`);
+        console.log(`Update interval: ${UPDATE_INTERVAL / 60000} minutes`);
 
         try {
             // Create Matter environment
@@ -62,6 +104,10 @@ data:
             // Storage is automatically configured by the environment
             const storageService = environment.get(StorageService);
             console.log(`Storage location: ${storageService.location}`);
+
+            // Fetch initial temperature
+            const initialTemperature = await fetchTemperature();
+            console.log(`Initial temperature: ${initialTemperature}°C`);
 
             // Create the Matter server node
             const serverNode = await ServerNode.create({
@@ -85,13 +131,13 @@ data:
                 },
             });
 
-            // Create temperature sensor endpoint with fixed temperature
+            // Create temperature sensor endpoint with initial temperature
             const temperatureSensor = new Endpoint(TemperatureSensorDevice, {
                 id: "temperature-sensor",
                 temperatureMeasurement: {
                     // Matter uses centi-degrees Celsius (1/100th of a degree)
                     // So 10°C = 1000 centi-degrees
-                    measuredValue: FIXED_TEMPERATURE * 100,
+                    measuredValue: Math.round(initialTemperature * 100),
                     minMeasuredValue: -5000, // -50°C
                     maxMeasuredValue: 12000,  // 120°C
                 },
@@ -105,24 +151,33 @@ data:
             // Start the Matter server
             await serverNode.run();
 
-            console.log("Matter Temperature Sensor is running!");
-            console.log("Device can now be commissioned and paired with Matter controllers");
-            console.log(`Current temperature: ${FIXED_TEMPERATURE}°C`);
+            console.log("✓ Matter Temperature Sensor is running!");
+            console.log("✓ Device can now be commissioned and paired with Matter controllers");
+            console.log(`✓ Current temperature: ${initialTemperature}°C`);
+            console.log("");
 
-            // Optional: Update temperature periodically (for future weather API integration)
-            // This is commented out as we're using a fixed value for now
-            /*
+            // Update temperature periodically from OpenWeatherMap API
+            let updateCount = 0;
             setInterval(async () => {
-                // In the future, fetch from weather API here
-                const newTemp = FIXED_TEMPERATURE; // Replace with API call
-                await temperatureSensor.set({
-                    temperatureMeasurement: {
-                        measuredValue: newTemp * 100
-                    }
-                });
-                console.log(`Temperature updated: ${newTemp}°C`);
-            }, 60000); // Update every 60 seconds
-            */
+                updateCount++;
+                console.log(`\n[Update #${updateCount}] Updating temperature...`);
+
+                const newTemperature = await fetchTemperature();
+                const measuredValue = Math.round(newTemperature * 100);
+
+                try {
+                    await temperatureSensor.set({
+                        temperatureMeasurement: {
+                            measuredValue: measuredValue
+                        }
+                    });
+                    console.log(`✓ Temperature updated successfully: ${newTemperature}°C`);
+                } catch (error) {
+                    console.error(`✗ Failed to update temperature sensor: ${error.message}`);
+                }
+
+                console.log(`Next update in ${UPDATE_INTERVAL / 60000} minutes\n`);
+            }, UPDATE_INTERVAL);
 
         } catch (error) {
             console.error("Error starting Matter Temperature Sensor:", error);

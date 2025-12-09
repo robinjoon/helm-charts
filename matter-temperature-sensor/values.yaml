@@ -1,10 +1,11 @@
 # Default values for matter-temperature-sensor
 
 # Docker image configuration
+# Using official Node.js image - no custom Docker build required!
 image:
-  repository: matter-temperature-sensor
+  repository: node
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "22-alpine"
 
 imagePullSecrets: []
 
@@ -31,8 +32,8 @@ securityContext:
     add:
       - NET_ADMIN
       - NET_RAW
-  runAsNonRoot: true
-  runAsUser: 1000
+  runAsNonRoot: false
+  runAsUser: 0
 
 # Service configuration
 service:
@@ -81,7 +82,7 @@ livenessProbe:
       - node
       - -e
       - "console.log('OK')"
-  initialDelaySeconds: 30
+  initialDelaySeconds: 60
   periodSeconds: 30
   timeoutSeconds: 10
   failureThreshold: 3
@@ -93,7 +94,7 @@ readinessProbe:
       - node
       - -e
       - "console.log('OK')"
-  initialDelaySeconds: 20
+  initialDelaySeconds: 50
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3

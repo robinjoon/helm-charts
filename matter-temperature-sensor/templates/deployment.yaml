@@ -13,7 +13,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: {{ .Values | toYaml | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -31,12 +31,35 @@ spec:
       hostNetwork: true
       dnsPolicy: {{ .Values.dnsPolicy }}
       {{- end }}
+      # Init container to install npm dependencies
+      initContainers:
+        - name: npm-install
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              echo "Installing npm dependencies..."
+              cd /app
+              npm install --production
+              echo "Dependencies installed successfully"
+          volumeMounts:
+            - name: app-source
+              mountPath: /app
+              readOnly: true
+            - name: node-modules
+              mountPath: /app/node_modules
+          workingDir: /app
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - node
+            - /app/index.js
           ports:
             - name: matter
               containerPort: 5540
@@ -54,10 +77,18 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
-          {{- with .Values.env }}
+            - name: app-source
+              mountPath: /app
+              readOnly: true
+            - name: node-modules
+              mountPath: /app/node_modules
           env:
+            - name: STORAGE_PATH
+              value: "/data"
+          {{- with .Values.env }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          workingDir: /app
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -78,3 +109,8 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+        - name: app-source
+          configMap:
+            name: {{ include "matter-temperature-sensor.fullname" . }}-app
+        - name: node-modules
+          emptyDir: {}

@@ -6,6 +6,11 @@ Matter 프로토콜을 사용하는 가상 IoT 온도 센서를 Kubernetes에 �
 
 이 Helm Chart는 Matter.js를 사용하여 구현된 가상 온도 센서를 배포합니다. 현재는 고정값 10°C를 반환하며, 향후 날씨 API와 연동할 수 있도록 설계되었습니다.
 
+**🎉 별도의 Docker 이미지 빌드가 필요 없습니다!**
+- 소스 코드는 ConfigMap으로 관리
+- 공식 Node.js 이미지 사용 (node:22-alpine)
+- 런타임에 자동으로 npm 의존성 설치
+
 ## 특징
 
 - ✅ Matter 프로토콜 지원
@@ -14,6 +19,8 @@ Matter 프로토콜을 사용하는 가상 IoT 온도 센서를 Kubernetes에 �
 - ✅ 데이터 영구 저장 (PVC)
 - ✅ Host 네트워크 모드 지원 (mDNS 검색용)
 - ✅ Node.js 22 및 matter.js 라이브러리 사용
+- ✅ ConfigMap 기반 소스 코드 관리 - Docker 빌드 불필요!
+- ✅ InitContainer를 통한 자동 의존성 설치
 
 ## 전제 조건
 
@@ -24,20 +31,7 @@ Matter 프로토콜을 사용하는 가상 IoT 온도 센서를 Kubernetes에 �
 
 ## 설치
 
-### Docker 이미지 빌드
-
-먼저 Docker 이미지를 빌드하고 레지스트리에 푸시해야 합니다:
-
-```bash
-# 이미지 빌드
-docker build -t matter-temperature-sensor:latest ./app
-
-# (선택) 이미지를 레지스트리에 푸시
-# docker tag matter-temperature-sensor:latest your-registry/matter-temperature-sensor:latest
-# docker push your-registry/matter-temperature-sensor:latest
-```
-
-### Helm Chart 설치
+### Helm Chart 설치 (Docker 빌드 불필요!)
 
 ```bash
 # 기본 설정으로 설치
@@ -50,6 +44,18 @@ helm install matter-sensor ./matter-temperature-sensor -n iot --create-namespace
 helm install matter-sensor ./matter-temperature-sensor -f custom-values.yaml
 ```
 
+## 동작 방식
+
+1. **ConfigMap**: `index.js`와 `package.json` 파일이 ConfigMap으로 저장됩니다
+2. **InitContainer**: Pod 시작 시 `npm install --production`을 실행하여 의존성을 설치합니다
+3. **Main Container**: Node.js 애플리케이션이 실행되어 Matter 온도 센서로 동작합니다
+
+소스 코드를 수정하려면 `templates/configmap.yaml` 파일의 `index.js` 또는 `package.json` 섹션을 수정하고 Helm 차트를 업그레이드하면 됩니다:
+
+```bash
+helm upgrade matter-sensor ./matter-temperature-sensor
+```
+
 ## 설정
 
 주요 설정 옵션은 `values.yaml`에서 확인할 수 있습니다:
@@ -58,9 +64,9 @@ helm install matter-sensor ./matter-temperature-sensor -f custom-values.yaml
 
 ```yaml
 image:
-  repository: matter-temperature-sensor
+  repository: node  # 공식 Node.js 이미지 사용
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "22-alpine"
 ```
 
 ### 노드 선택기 (필수)
@@ -113,6 +119,12 @@ kubectl get pods -l app.kubernetes.io/name=matter-temperature-sensor
 
 ### 2. 로그 확인
 
+InitContainer의 npm install 로그를 확인:
+```bash
+kubectl logs -l app.kubernetes.io/name=matter-temperature-sensor -c npm-install
+```
+
+애플리케이션 로그 확인:
 ```bash
 kubectl logs -l app.kubernetes.io/name=matter-temperature-sensor -f
 ```
@@ -127,6 +139,17 @@ kubectl logs -l app.kubernetes.io/name=matter-temperature-sensor -f
 ### 4. 온도 확인
 
 페어링 후 Matter 컨트롤러 앱에서 온도 센서의 현재 값(10°C)을 확인할 수 있습니다.
+
+### 5. 소스 코드 수정
+
+`templates/configmap.yaml` 파일을 수정한 후:
+
+```bash
+# Helm 차트 업그레이드
+helm upgrade matter-sensor ./matter-temperature-sensor
+
+# ConfigMap이 변경되면 자동으로 Pod가 재시작됩니다
+```
 
 ## 제거
 
@@ -156,7 +179,15 @@ kubectl delete pvc -l app.kubernetes.io/name=matter-temperature-sensor
    kubectl get nodes --show-labels | grep high-perf
    ```
 
-2. 이미지가 노드에서 접근 가능한지 확인
+2. InitContainer 로그 확인 (npm install 실패 가능성):
+   ```bash
+   kubectl logs -l app.kubernetes.io/name=matter-temperature-sensor -c npm-install
+   ```
+
+### npm install이 실패함
+
+1. 네트워크 연결 확인 (npmjs.com 접근 가능한지)
+2. 프록시 설정이 필요한 경우 initContainer에 환경 변수 추가
 
 ### Matter 디바이스가 검색되지 않음
 

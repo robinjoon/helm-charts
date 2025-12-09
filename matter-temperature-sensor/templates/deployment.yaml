@@ -109,8 +109,9 @@ spec:
             - name: OPENWEATHER_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "matter-temperature-sensor.fullname" . }}-openweather
-                  key: api-key
+                  name: {{ .Values.openweathermap.secretName }}
+                  key: {{ .Values.openweathermap.secretKey }}
+                  optional: true
             {{- end }}
           {{- with .Values.env }}
             {{- toYaml . | nindent 12 }}

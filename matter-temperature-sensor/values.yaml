@@ -110,8 +110,8 @@ dnsPolicy: ClusterFirstWithHostNet
 # Get your free API key from: https://openweathermap.org/api
 openweathermap:
   enabled: true
-  # IMPORTANT: Set your OpenWeatherMap API key here
-  # If not set, the sensor will use a fallback temperature of 10°C
-  apiKey: ""
-  # Example:
-  # apiKey: "your-api-key-here"
+  # Secret name containing the API key
+  # You must create this secret manually before installing the chart
+  # See README.md for instructions on creating the secret
+  secretName: "matter-sensor-openweather"
+  secretKey: "api-key"

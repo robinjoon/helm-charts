@@ -45,42 +45,47 @@ Matter 프로토콜을 사용하는 가상 IoT 온도 센서를 Kubernetes에 �
 
 1. [OpenWeatherMap](https://openweathermap.org/api)에서 무료 계정 생성
 2. API 키 발급
-3. `values.yaml`에 API 키 설정
 
 **API 키 없이도 설치 가능**합니다. 이 경우 고정값 10°C를 사용합니다.
 
-### 2. values.yaml 설정
+### 2. Kubernetes Secret 생성 (선택)
 
-```yaml
-openweathermap:
-  enabled: true
-  apiKey: "your-api-key-here"  # OpenWeatherMap API 키 입력
+API 키를 발급받았다면, Kubernetes Secret으로 생성합니다:
+
+```bash
+# Secret 생성
+kubectl create secret generic matter-sensor-openweather \
+  --from-literal=api-key="your-api-key-here" \
+  -n iot
+
+# Secret 확인
+kubectl get secret matter-sensor-openweather -n iot
 ```
+
+**중요**: Secret은 Git에 올리지 않고 직접 Kubernetes에 생성합니다.
 
 ### 3. Helm Chart 설치
 
 ```bash
-# API 키와 함께 설치
-helm install matter-sensor ./matter-temperature-sensor \
-  --set openweathermap.apiKey="your-api-key-here"
-
-# 또는 values 파일 수정 후 설치
-helm install matter-sensor ./matter-temperature-sensor
-
-# 네임스페이스 지정하여 설치
+# 기본 설치 (Secret 있으면 자동으로 사용)
 helm install matter-sensor ./matter-temperature-sensor -n iot --create-namespace
+
+# 다른 Secret 이름을 사용하는 경우
+helm install matter-sensor ./matter-temperature-sensor \
+  --set openweathermap.secretName="my-openweather-secret" \
+  -n iot --create-namespace
 ```
 
 ## 동작 방식
 
 1. **ConfigMap**: `index.js`와 `package.json` 파일이 ConfigMap으로 저장됩니다
-2. **Secret**: OpenWeatherMap API 키가 Secret으로 저장됩니다
+2. **Secret**: OpenWeatherMap API 키는 사용자가 직접 생성한 Secret에서 가져옵니다
 3. **InitContainer**: Pod 시작 시 `npm install --production`을 실행하여 의존성을 설치합니다
 4. **Main Container**:
    - Node.js 애플리케이션이 실행되어 Matter 온도 센서로 동작
    - OpenWeatherMap API를 통해 현재 온도 조회
    - 10분마다 자동으로 온도 업데이트
-   - API 실패 시 fallback 온도(10°C) 사용
+   - API 키가 없거나 실패 시 fallback 온도(10°C) 사용
 
 ### 온도 업데이트 주기
 
@@ -92,11 +97,14 @@ helm install matter-sensor ./matter-temperature-sensor -n iot --create-namespace
 
 ```bash
 # ConfigMap 수정 후
-helm upgrade matter-sensor ./matter-temperature-sensor
+helm upgrade matter-sensor ./matter-temperature-sensor -n iot
 
-# API 키 변경
-helm upgrade matter-sensor ./matter-temperature-sensor \
-  --set openweathermap.apiKey="new-api-key"
+# API 키 변경 (Secret 업데이트)
+kubectl delete secret matter-sensor-openweather -n iot
+kubectl create secret generic matter-sensor-openweather \
+  --from-literal=api-key="new-api-key" \
+  -n iot
+kubectl rollout restart deployment/matter-sensor -n iot
 ```
 
 ## 설정
@@ -108,11 +116,14 @@ helm upgrade matter-sensor ./matter-temperature-sensor \
 ```yaml
 openweathermap:
   enabled: true
-  apiKey: "your-api-key-here"  # OpenWeatherMap API 키
+  secretName: "matter-sensor-openweather"  # Secret 이름
+  secretKey: "api-key"  # Secret의 키 이름
 ```
 
 - `enabled`: OpenWeatherMap 통합 활성화 (true/false)
-- `apiKey`: OpenWeatherMap API 키 (없으면 fallback 온도 사용)
+- `secretName`: API 키가 저장된 Secret 이름
+- `secretKey`: Secret 내의 API 키 필드 이름
+- Secret이 없으면 fallback 온도(10°C) 사용
 
 ### 이미지 설정
 
@@ -216,9 +227,14 @@ Next update in 10 minutes
 운영 중에도 API 키를 변경할 수 있습니다:
 
 ```bash
-# API 키 업데이트
-helm upgrade matter-sensor ./matter-temperature-sensor \
-  --set openweathermap.apiKey="new-api-key"
+# Secret 삭제 후 재생성
+kubectl delete secret matter-sensor-openweather -n iot
+kubectl create secret generic matter-sensor-openweather \
+  --from-literal=api-key="new-api-key" \
+  -n iot
+
+# Pod 재시작하여 새 API 키 적용
+kubectl rollout restart deployment -l app.kubernetes.io/name=matter-temperature-sensor -n iot
 ```
 
 ### 6. 위치 변경

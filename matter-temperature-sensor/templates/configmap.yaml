@@ -35,7 +35,7 @@ data:
      * a weather API.
      */
 
-    import { Endpoint, Environment, ServerNode, StorageBackendDisk } from "@matter/main";
+    import { Endpoint, Environment, ServerNode, StorageService } from "@matter/main";
     import { TemperatureMeasurementServer } from "@matter/main/behaviors";
     import { TemperatureSensorDevice } from "@matter/main/devices";
     import { VendorId } from "@matter/main/types";
@@ -56,14 +56,12 @@ data:
         console.log(`Fixed Temperature: ${FIXED_TEMPERATURE}°C`);
 
         try {
-            // Create Matter environment with storage
+            // Create Matter environment
             const environment = Environment.default;
 
-            // Use disk storage for device persistence
-            const storageLocation = process.env.STORAGE_PATH || "/data";
-            environment.set(StorageBackendDisk, { path: storageLocation });
-
-            console.log(`Storage location: ${storageLocation}`);
+            // Storage is automatically configured by the environment
+            const storageService = environment.get(StorageService);
+            console.log(`Storage location: ${storageService.location}`);
 
             // Create the Matter server node
             const serverNode = await ServerNode.create({

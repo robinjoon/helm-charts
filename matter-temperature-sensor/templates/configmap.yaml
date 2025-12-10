@@ -265,7 +265,9 @@ data:
         const port = environment.vars.number("port") ?? 5540;
 
         // Unique ID 생성 또는 로드 (재시작 시 동일 ID 유지 위함)
-        const uniqueId = environment.vars.string("uniqueid") ?? (await deviceStorage.get("uniqueid", Time.nowMs.toString()));
+        // Ensure uniqueId does not contain dots (Time.nowMs might return a float)
+        let uniqueId = environment.vars.string("uniqueid") ?? (await deviceStorage.get("uniqueid", Math.round(Time.nowMs).toString()));
+        uniqueId = uniqueId.replace(/\./g, "");
 
         // 중요 설정값 영구 저장
         await deviceStorage.set({

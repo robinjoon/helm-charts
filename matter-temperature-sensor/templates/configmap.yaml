@@ -250,7 +250,7 @@ data:
         const deviceStorage = (await storageService.open("device")).createContext("data");
 
         // 기본 설정값 로드 (환경 변수 -> 스토리지 -> 기본값 순서)
-        const interval = environment.vars.number("interval") ?? (await deviceStorage.get("interval", 60)); // 60초 기본
+        const interval = environment.vars.number("interval") ?? (await deviceStorage.get("interval", 600)); // 600초 기본
 
         const deviceName = "Weather Station";
         const vendorName = "HomeLabIoT";

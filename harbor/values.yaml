@@ -28,7 +28,7 @@ expose:
       secretName: "harbor-tls"
   ingress:
     hosts:
-      core: harbor.homlab.robinjoon.xyz
+      core: harbor.homelab.robinjoon.xyz
     # set to the type of ingress controller if it has specific requirements.
     # leave as `default` for most ingress controllers.
     # set to `gce` if using the GCE ingress controller

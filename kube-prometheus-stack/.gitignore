@@ -1,0 +1,10 @@
+# Ignore local secret manifests and private overrides
+secret.yaml
+secrets.yaml
+*-secret.yaml
+values-private*.yaml
+values/values-private*.yaml
+
+# Keep tracked examples
+!secret.example.yaml
+!*-secret.example.yaml

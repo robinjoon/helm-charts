@@ -1,0 +1,6 @@
+prometheus:
+  prometheusSpec:
+    additionalScrapeConfigsSecret:
+      enabled: true
+      name: kube-prometheus-stack-additional-scrape-configs
+      key: additional-scrape-configs.yaml

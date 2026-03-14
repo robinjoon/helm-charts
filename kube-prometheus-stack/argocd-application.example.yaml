@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: <YOUR_GIT_REPO_URL>
+    targetRevision: main
+    path: kube-prometheus-stack
+    helm:
+      valueFiles:
+        - values/values-k3s.yaml
+        # - values/values-k3s-external-targets.yaml
+        # - values/values-k3s-alertmanager-existing-secret.yaml
+        # - values/values-k3s-grafana-subdomain.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true

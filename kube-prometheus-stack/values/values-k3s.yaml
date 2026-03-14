@@ -12,6 +12,9 @@ defaultRules:
     kubeSchedulerAlerting: false
     kubeSchedulerRecording: false
     windows: false
+  disabled:
+    KubeCPUOvercommit: true
+    CPUThrottlingHigh: true
 
 alertmanager:
   enabled: true

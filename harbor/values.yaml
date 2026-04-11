@@ -149,7 +149,7 @@ persistence:
     jobservice:
       jobLog:
         existingClaim: ""
-        storageClass: "local-path"
+        storageClass: "nfs-csi"
         subPath: ""
         accessMode: ReadWriteOnce
         size: 1Gi
@@ -158,7 +158,7 @@ persistence:
     # be ignored
     database:
       existingClaim: ""
-      storageClass: "local-path"
+      storageClass: "nfs-csi"
       subPath: ""
       accessMode: ReadWriteOnce
       size: 2Gi
@@ -167,7 +167,7 @@ persistence:
     # be ignored
     redis:
       existingClaim: ""
-      storageClass: "local-path"
+      storageClass: "nfs-csi"
       subPath: ""
       accessMode: ReadWriteOnce
       size: 1Gi

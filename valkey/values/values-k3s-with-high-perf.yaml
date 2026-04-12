@@ -13,8 +13,6 @@ tls:
 
 primary:
   replicaCount: 1
-  nodeSelector:
-    type: "high-perf"
   resources:
     requests:
       cpu: 500m
@@ -24,7 +22,7 @@ primary:
       memory: 3Gi
   persistence:
     enabled: true
-    storageClass: "local-path"
+    storageClass: "longhorn"
     accessModes:
       - ReadWriteOnce
     size: 5Gi

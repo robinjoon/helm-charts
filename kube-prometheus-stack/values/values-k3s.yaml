@@ -32,7 +32,7 @@ alertmanager:
     storage:
       volumeClaimTemplate:
         spec:
-          storageClassName: local-path
+          storageClassName: nfs-csi
           accessModes:
             - ReadWriteOnce
           resources:
@@ -58,7 +58,7 @@ grafana:
   persistence:
     enabled: true
     type: sts
-    storageClassName: local-path
+    storageClassName: nfs-csi
     accessModes:
       - ReadWriteOnce
     size: 5Gi

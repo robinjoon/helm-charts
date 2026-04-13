@@ -27,6 +27,11 @@ spec:
         {{- include "n8n.labels" . | nindent 8 }}
         app.kubernetes.io/component: worker
     spec:
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
       {{- with include "n8n.serviceAccountName" . }}
       serviceAccountName: {{ . }}
       {{- end }}

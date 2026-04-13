@@ -33,7 +33,7 @@ secretRefs:
 database:
   type: postgresdb
   useExternal: true
-  host: "postgresql.postgres.svc.cluster.local"
+  host: "postgresql.postgresql.svc.cluster.local"
   port: 5432
   database: n8n
   user: n8n

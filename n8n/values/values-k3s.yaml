@@ -1,0 +1,53 @@
+# n8n queue mode (PostgreSQL + Valkey)
+queueMode:
+  enabled: true
+  workerReplicaCount: 2
+  workerConcurrency: 10
+
+# 리소스
+resources:
+  main:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  worker:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# 시크릿 (배포 전 Secret 리소스 생성 필요)
+# n8n-secret: N8N_ENCRYPTION_KEY
+# n8n-db-password: password
+secretRefs:
+  existingSecret: "n8n-secret"
+  env:
+    N8N_ENCRYPTION_KEY: "encryption-key"
+
+# PostgreSQL 연결
+database:
+  type: postgresdb
+  useExternal: true
+  host: "postgresql.postgres.svc.cluster.local"
+  port: 5432
+  database: n8n
+  user: n8n
+  passwordSecret:
+    name: "n8n-db-password"
+    key: "password"
+
+# Valkey (Redis 호환) 연결
+redis:
+  enabled: true
+  useExternal: true
+  host: "valkey-primary.valkey.svc.cluster.local"
+  port: 6379
+  tls: true
+  passwordSecret:
+    name: "n8n-redis-password"
+    key: "password"

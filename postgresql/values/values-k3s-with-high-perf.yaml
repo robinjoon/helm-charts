@@ -44,6 +44,8 @@ primary:
     runAsUser: 1001
     runAsGroup: 1001
     runAsNonRoot: true
+  nodeSelector:
+    kubernetes.io/arch: amd64
 
 backup:
   enabled: true

@@ -138,7 +138,7 @@ prometheus:
     externalLabels:
       cluster: homelab-k3s
     nodeSelector:
-      type: vm
+      kubernetes.io/arch: amd64
     resources:
       requests:
         cpu: 500m

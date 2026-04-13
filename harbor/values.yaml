@@ -158,7 +158,7 @@ persistence:
     # be ignored
     database:
       existingClaim: ""
-      storageClass: "nfs-csi"
+      storageClass: "longhorn"
       subPath: ""
       accessMode: ReadWriteOnce
       size: 2Gi
@@ -167,7 +167,7 @@ persistence:
     # be ignored
     redis:
       existingClaim: ""
-      storageClass: "nfs-csi"
+      storageClass: "longhorn"
       subPath: ""
       accessMode: ReadWriteOnce
       size: 1Gi

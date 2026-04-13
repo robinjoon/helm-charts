@@ -47,7 +47,7 @@ redis:
   useExternal: true
   host: "valkey-primary.valkey.svc.cluster.local"
   port: 6379
-  tls: true
+  tls: false
   passwordSecret:
     name: "n8n-redis-password"
     key: "password"

@@ -51,3 +51,20 @@ redis:
   passwordSecret:
     name: "n8n-redis-password"
     key: "password"
+
+# Ingress
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: n8n.homelab.robinjoon.xyz
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: n8n-homelab-robinjoon-xyz-tls
+      hosts:
+        - n8n.homelab.robinjoon.xyz

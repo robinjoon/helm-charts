@@ -1,3 +1,8 @@
+# 커스텀 이미지 (Codex CLI 포함)
+image:
+  repository: harbor.homelab.robinjoon.xyz/library/n8n
+  tag: "stable-codex"
+
 # n8n queue mode (PostgreSQL + Valkey)
 queueMode:
   enabled: true

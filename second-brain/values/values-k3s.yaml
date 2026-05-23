@@ -26,10 +26,14 @@ secretRefs:
 
 app:
   replicaCount: 1
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 
 worker:
   enabled: true
   replicaCount: 1
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 
 service:
   type: ClusterIP
@@ -49,6 +53,9 @@ ingress:
 migration:
   enabled: true
   runSeed: false
+  useHelmHooks: false
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 
 persistence:
   enabled: false

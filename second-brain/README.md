@@ -92,7 +92,7 @@ http://second-brain-ai-proxy:8317/v1
 
 ### 2. 외부 Mac mini VibeProxy를 k8s Service처럼 노출
 
-Mac mini에서 VibeProxy 또는 CLIProxyAPI를 실행하고, k8s에는 selector 없는 Service와 EndpointSlice만 생성합니다. Second Brain은 여전히 내부 DNS 이름을 사용합니다.
+Mac mini에서 VibeProxy 또는 CLIProxyAPI를 실행하고, k8s에는 selector 없는 Service와 Endpoints만 생성합니다. Second Brain은 여전히 내부 DNS 이름을 사용합니다.
 
 ```yaml
 aiProxy:

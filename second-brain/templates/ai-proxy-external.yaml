@@ -19,24 +19,21 @@ spec:
       targetPort: http
       protocol: TCP
 ---
-apiVersion: discovery.k8s.io/v1
-kind: EndpointSlice
+apiVersion: v1
+kind: Endpoints
 metadata:
-  name: {{ include "second-brain.aiProxyServiceName" . }}-1
+  name: {{ include "second-brain.aiProxyServiceName" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "second-brain.labels" . | nindent 4 }}
     app.kubernetes.io/component: ai-proxy
-    kubernetes.io/service-name: {{ include "second-brain.aiProxyServiceName" . }}
-    endpointslice.kubernetes.io/managed-by: Helm
-addressType: {{ .Values.aiProxy.external.addressType }}
-ports:
-  - name: http
-    port: {{ .Values.aiProxy.external.port }}
-    protocol: TCP
-endpoints:
-  {{- range .Values.aiProxy.external.addresses }}
+subsets:
   - addresses:
-      - {{ . | quote }}
-  {{- end }}
+      {{- range .Values.aiProxy.external.addresses }}
+      - ip: {{ . | quote }}
+      {{- end }}
+    ports:
+      - name: http
+        port: {{ .Values.aiProxy.external.port }}
+        protocol: TCP
 {{- end }}

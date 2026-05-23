@@ -23,4 +23,4 @@ config:
     AI_API_MODE: responses
     DESCRIPTION_SYNC_INTERVAL_MS: "60000"
     DESCRIPTION_SYNC_LIMIT: "10"
-    SYNC_RELATIONS: "true"
+    SYNC_RELATIONS: "false"

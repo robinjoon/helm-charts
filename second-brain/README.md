@@ -10,7 +10,7 @@ Second Brain을 k3s 또는 Kubernetes에 배포하기 위한 Helm chart입니다
 - worker의 `APP_BASE_URL` 기본값은 내부 Service 주소입니다.
 - `AUTH_MODE=required`에서는 앱과 worker가 같은 `APP_INTERNAL_API_TOKEN`을 Secret으로 받아야 보호된 sync API를 호출할 수 있습니다.
 - MCP endpoint는 `APP_INTERNAL_API_TOKEN`이 아니라 `npm run mcp:create-key`로 발급한 별도 API key를 사용합니다.
-- AI 호출 방식은 현재 코드 기준으로 `AI_API_MODE=responses`가 기본이며, 호환 proxy가 필요하면 `chat`으로 바꿀 수 있습니다.
+- AI 호출 방식은 현재 코드 기준으로 `AI_API_MODE=responses`가 기본입니다. Mac mini VibeProxy override는 OpenAI-compatible chat completions 호환성을 위해 `chat`을 사용합니다.
 
 ## 이미지 계약
 

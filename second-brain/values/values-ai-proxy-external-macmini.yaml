@@ -19,8 +19,7 @@ config:
     HOSTNAME: "0.0.0.0"
     AUTH_MODE: required
     AI_MODEL: gpt-5.5
-    # Use chat if your local proxy does not support the Responses API.
-    AI_API_MODE: responses
+    AI_API_MODE: chat
     DESCRIPTION_SYNC_INTERVAL_MS: "60000"
     DESCRIPTION_SYNC_LIMIT: "10"
     SYNC_RELATIONS: "true"

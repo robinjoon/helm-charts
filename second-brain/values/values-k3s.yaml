@@ -1,0 +1,51 @@
+# k3s/Traefik oriented override example for Second Brain.
+
+image:
+  repository: ghcr.io/robinjoon/second-brain
+  tag: latest
+  pullPolicy: IfNotPresent
+
+config:
+  env:
+    NODE_ENV: production
+    PORT: "3000"
+    HOSTNAME: "0.0.0.0"
+    AUTH_MODE: required
+    AI_MODEL: gpt-5.5
+    AI_API_MODE: responses
+    DESCRIPTION_SYNC_INTERVAL_MS: "60000"
+    DESCRIPTION_SYNC_LIMIT: "10"
+    SYNC_RELATIONS: "true"
+
+secretRefs:
+  existingSecret: second-brain-env
+  create: false
+
+app:
+  replicaCount: 1
+
+worker:
+  enabled: true
+  replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations: {}
+  hosts:
+    - host: second-brain.robinjoon.xyz
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+migration:
+  enabled: true
+  runSeed: false
+
+persistence:
+  enabled: false

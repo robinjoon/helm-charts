@@ -1,0 +1,157 @@
+{{- if and .Values.aiProxy.enabled (eq .Values.aiProxy.mode "internal") }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "second-brain.aiProxyServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "second-brain.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-proxy
+  {{- with .Values.aiProxy.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.aiProxy.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.aiProxy.service.port }}
+      targetPort: {{ .Values.aiProxy.service.targetPort }}
+      protocol: TCP
+  selector:
+    {{- include "second-brain.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-proxy
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "second-brain.aiProxyServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "second-brain.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-proxy
+  {{- with .Values.aiProxy.internal.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.aiProxy.internal.replicaCount }}
+  revisionHistoryLimit: 3
+  {{- with .Values.aiProxy.internal.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "second-brain.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: ai-proxy
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/ai-proxy-config-secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.aiProxy.internal.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "second-brain.labels" . | nindent 8 }}
+        app.kubernetes.io/component: ai-proxy
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.aiProxy.internal.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "second-brain.serviceAccountName" . }}
+      containers:
+        - name: ai-proxy
+          image: "{{ .Values.aiProxy.internal.image.repository }}:{{ .Values.aiProxy.internal.image.tag }}"
+          imagePullPolicy: {{ .Values.aiProxy.internal.image.pullPolicy }}
+          {{- with .Values.aiProxy.internal.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.aiProxy.internal.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.aiProxy.internal.env }}
+          env:
+            {{- toYaml .Values.aiProxy.internal.env | nindent 12 }}
+          {{- end }}
+          {{- with .Values.aiProxy.internal.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.aiProxy.service.port }}
+              protocol: TCP
+          {{- if .Values.aiProxy.internal.probes.readiness.enabled }}
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: {{ .Values.aiProxy.internal.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.aiProxy.internal.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.aiProxy.internal.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.aiProxy.internal.probes.readiness.failureThreshold }}
+          {{- end }}
+          {{- if .Values.aiProxy.internal.probes.liveness.enabled }}
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: {{ .Values.aiProxy.internal.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.aiProxy.internal.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.aiProxy.internal.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.aiProxy.internal.probes.liveness.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.aiProxy.internal.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /CLIProxyAPI/config.yaml
+              subPath: {{ .Values.aiProxy.internal.configSecretKey }}
+              readOnly: true
+            - name: auth
+              mountPath: /root/.cli-proxy-api
+            - name: logs
+              mountPath: /CLIProxyAPI/logs
+      volumes:
+        - name: config
+          secret:
+            secretName: {{ include "second-brain.aiProxyConfigSecretName" . }}
+        - name: auth
+          {{- if .Values.aiProxy.internal.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "second-brain.aiProxyAuthPvcName" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: logs
+          {{- if .Values.aiProxy.internal.logsPersistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "second-brain.aiProxyLogsPvcName" . }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+

@@ -1,9 +1,12 @@
 # k3s/Traefik oriented override example for Second Brain.
 
 image:
-  repository: ghcr.io/robinjoon/second-brain
+  repository: harbor.homelab.robinjoon.xyz/second-brain/second-brain
   tag: latest
   pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: harbor-pull-secret
 
 config:
   env:

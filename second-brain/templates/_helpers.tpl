@@ -68,6 +68,16 @@ Image reference.
 {{- end }}
 
 {{/*
+Migration job name. Argo CD renders Helm with a stable .Release.Revision, so
+include the image tag to create a fresh Job when the deployed image changes.
+*/}}
+{{- define "second-brain.migrationJobName" -}}
+{{- $tag := default .Chart.AppVersion .Values.image.tag -}}
+{{- $suffix := regexReplaceAll "[^a-z0-9-]+" (lower $tag) "-" | trimAll "-" -}}
+{{- printf "%s-migrate-%s" (include "second-brain.fullname" .) $suffix | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
 ConfigMap name.
 */}}
 {{- define "second-brain.configMapName" -}}

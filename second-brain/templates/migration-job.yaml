@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "second-brain.fullname" . }}-migrate-{{ .Release.Revision }}
+  name: {{ include "second-brain.migrationJobName" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "second-brain.labels" . | nindent 4 }}

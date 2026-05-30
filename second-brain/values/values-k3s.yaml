@@ -2,7 +2,7 @@
 
 image:
   repository: harbor.homelab.robinjoon.xyz/second-brain/second-brain
-  tag: latest
+  tag: sha-a2c6c65
   pullPolicy: IfNotPresent
 
 imagePullSecrets:

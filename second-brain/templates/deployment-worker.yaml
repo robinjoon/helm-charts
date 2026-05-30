@@ -78,6 +78,10 @@ spec:
             - name: APP_BASE_URL
               value: {{ include "second-brain.workerAppBaseUrl" . | quote }}
             {{- include "second-brain.aiProxyEnv" . | nindent 12 }}
+            {{- if hasKey .Values.config.env "SYNC_RELATIONS" }}
+            - name: SYNC_RELATIONS
+              value: {{ index .Values.config.env "SYNC_RELATIONS" | quote }}
+            {{- end }}
             {{- with .Values.config.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

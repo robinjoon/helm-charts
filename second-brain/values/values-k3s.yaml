@@ -18,7 +18,7 @@ config:
     AI_API_MODE: chat
     DESCRIPTION_SYNC_INTERVAL_MS: "60000"
     DESCRIPTION_SYNC_LIMIT: "10"
-    SYNC_RELATIONS: "true"
+    SYNC_RELATIONS: "false"
 
 secretRefs:
   existingSecret: second-brain-env

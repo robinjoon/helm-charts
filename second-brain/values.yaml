@@ -3,7 +3,7 @@
 image:
   repository: harbor.homelab.robinjoon.xyz/second-brain/second-brain
   pullPolicy: IfNotPresent
-  tag: "sha-58fc097"
+  tag: "sha-fa45b46"
 
 imagePullSecrets: []
 

@@ -1,0 +1,296 @@
+# Default values for second-brain.
+
+image:
+  repository: harbor.homelab.robinjoon.xyz/second-brain/second-brain
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+config:
+  # Non-sensitive environment variables shared by app, worker, and jobs.
+  env:
+    NODE_ENV: production
+    PORT: "3000"
+    HOSTNAME: "0.0.0.0"
+    AUTH_MODE: disabled
+    AI_MODEL: gpt-5.5
+    AI_API_MODE: responses
+    DESCRIPTION_SYNC_INTERVAL_MS: "60000"
+    DESCRIPTION_SYNC_LIMIT: "10"
+    SYNC_RELATIONS: "true"
+  extraEnv: []
+  extraEnvFrom: []
+
+secretRefs:
+  # Set existingSecret to a Secret containing env-style keys such as
+  # DATABASE_URL, AI_API_KEY, AUTH_SECRET, AUTH_USERNAME,
+  # AUTH_PASSWORD_HASH, and APP_INTERNAL_API_TOKEN.
+  existingSecret: ""
+  create: true
+  env:
+    DATABASE_URL: ""
+    AI_API_KEY: ""
+    AUTH_SECRET: ""
+    AUTH_USERNAME: ""
+    AUTH_PASSWORD_HASH: ""
+    AUTH_PASSWORD: ""
+    APP_INTERNAL_API_TOKEN: ""
+
+aiProxy:
+  enabled: false
+  # internal: run CLIProxyAPI inside the cluster.
+  # external: expose a LAN proxy such as VibeProxy through Service + Endpoints.
+  mode: external
+  # When enabled, inject AI_BASE_URL into app, worker, and migration pods.
+  useAsAppAiBaseUrl: true
+  # Override the injected AI_BASE_URL. Empty defaults to http://<service>:<port>/v1.
+  baseUrl: ""
+  service:
+    name: ""
+    type: ClusterIP
+    port: 8317
+    targetPort: http
+    annotations: {}
+  external:
+    # IP addresses reachable from k8s nodes, for example a Mac mini running VibeProxy.
+    addressType: IPv4
+    addresses: []
+    port: 8317
+  internal:
+    image:
+      repository: eceasy/cli-proxy-api
+      tag: latest
+      pullPolicy: IfNotPresent
+    replicaCount: 1
+    command: []
+    args: []
+    annotations: {}
+    podAnnotations: {}
+    podLabels: {}
+    strategy:
+      type: Recreate
+    env: []
+    envFrom: []
+    # Provide a Secret containing config.yaml, or let the chart create one from config.
+    existingConfigSecret: ""
+    configSecretKey: config.yaml
+    config: |
+      host: ""
+      port: 8317
+      auth-dir: "/root/.cli-proxy-api"
+      api-keys:
+        - "not-needed"
+      remote-management:
+        allow-remote: false
+        secret-key: ""
+      logging-to-file: false
+    persistence:
+      enabled: true
+      existingClaim: ""
+      storageClass: local-path
+      accessModes:
+        - ReadWriteOnce
+      size: 1Gi
+      annotations: {}
+    logsPersistence:
+      enabled: false
+      existingClaim: ""
+      storageClass: local-path
+      accessModes:
+        - ReadWriteOnce
+      size: 1Gi
+      annotations: {}
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 1000m
+        memory: 512Mi
+    probes:
+      readiness:
+        enabled: true
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        timeoutSeconds: 3
+        failureThreshold: 6
+      liveness:
+        enabled: true
+        initialDelaySeconds: 30
+        periodSeconds: 30
+        timeoutSeconds: 3
+        failureThreshold: 3
+
+app:
+  replicaCount: 1
+  command:
+    - npm
+    - run
+    - start
+  args: []
+  annotations: {}
+  podAnnotations: {}
+  podLabels: {}
+  strategy:
+    type: RollingUpdate
+  terminationGracePeriodSeconds: 30
+  extraEnv: []
+  extraEnvFrom: []
+  extraVolumeMounts: []
+  extraVolumes: []
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  probes:
+    startup:
+      enabled: true
+      path: /login
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 30
+    readiness:
+      enabled: true
+      path: /login
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 6
+    liveness:
+      enabled: true
+      path: /login
+      initialDelaySeconds: 30
+      periodSeconds: 30
+      timeoutSeconds: 5
+      failureThreshold: 3
+
+worker:
+  enabled: true
+  replicaCount: 1
+  command:
+    - npm
+    - run
+    - sync:watch
+  args: []
+  # Defaults to the internal app Service URL when empty.
+  appBaseUrl: ""
+  annotations: {}
+  podAnnotations: {}
+  podLabels: {}
+  strategy:
+    type: RollingUpdate
+  terminationGracePeriodSeconds: 30
+  extraEnv: []
+  extraEnvFrom: []
+  extraVolumeMounts: []
+  extraVolumes: []
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  probes:
+    liveness:
+      enabled: true
+      command:
+        - node
+        - -e
+        - process.exit(0)
+      initialDelaySeconds: 60
+      periodSeconds: 30
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      enabled: false
+      command:
+        - node
+        - -e
+        - process.exit(0)
+      initialDelaySeconds: 10
+      periodSeconds: 30
+      timeoutSeconds: 5
+      failureThreshold: 3
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: http
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: traefik
+  annotations: {}
+  hosts:
+    - host: second-brain.robinjoon.xyz
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+migration:
+  enabled: false
+  runSeed: false
+  useHelmHooks: true
+  annotations: {}
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 300
+  command: []
+  args: []
+  podAnnotations: {}
+  extraEnv: []
+  extraEnvFrom: []
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+persistence:
+  # Current Second Brain stores sync status in PostgreSQL. Enable this only
+  # for legacy images that still write .data/sync-status.json.
+  enabled: false
+  existingClaim: ""
+  storageClass: local-path
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+  mountPath: /app/.data
+  annotations: {}
+
+extraVolumes: []
+extraVolumeMounts: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []

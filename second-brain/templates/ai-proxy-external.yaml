@@ -1,0 +1,39 @@
+{{- if and .Values.aiProxy.enabled (eq .Values.aiProxy.mode "external") }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "second-brain.aiProxyServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "second-brain.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-proxy
+  {{- with .Values.aiProxy.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.aiProxy.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.aiProxy.service.port }}
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: {{ include "second-brain.aiProxyServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "second-brain.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-proxy
+subsets:
+  - addresses:
+      {{- range .Values.aiProxy.external.addresses }}
+      - ip: {{ . | quote }}
+      {{- end }}
+    ports:
+      - name: http
+        port: {{ .Values.aiProxy.external.port }}
+        protocol: TCP
+{{- end }}

@@ -1,0 +1,25 @@
+# Expose a LAN VibeProxy/CLIProxyAPI instance as an in-cluster Service.
+
+aiProxy:
+  enabled: true
+  mode: external
+  useAsAppAiBaseUrl: true
+  service:
+    port: 8317
+  external:
+    addressType: IPv4
+    addresses:
+      - 192.168.0.149
+    port: 8317
+
+config:
+  env:
+    NODE_ENV: production
+    PORT: "3000"
+    HOSTNAME: "0.0.0.0"
+    AUTH_MODE: required
+    AI_MODEL: gpt-5.5
+    AI_API_MODE: chat
+    DESCRIPTION_SYNC_INTERVAL_MS: "60000"
+    DESCRIPTION_SYNC_LIMIT: "10"
+    SYNC_RELATIONS: true

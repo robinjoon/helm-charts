@@ -1,0 +1,37 @@
+# Run CLIProxyAPI as a side workload in the same namespace.
+
+aiProxy:
+  enabled: true
+  mode: internal
+  useAsAppAiBaseUrl: true
+  internal:
+    image:
+      repository: eceasy/cli-proxy-api
+      tag: latest
+      pullPolicy: IfNotPresent
+    config: |
+      host: ""
+      port: 8317
+      auth-dir: "/root/.cli-proxy-api"
+      api-keys:
+        - "not-needed"
+      remote-management:
+        allow-remote: false
+        secret-key: ""
+      logging-to-file: false
+    persistence:
+      enabled: true
+      storageClass: local-path
+      size: 1Gi
+
+config:
+  env:
+    NODE_ENV: production
+    PORT: "3000"
+    HOSTNAME: "0.0.0.0"
+    AUTH_MODE: required
+    AI_MODEL: gpt-5.5
+    AI_API_MODE: responses
+    DESCRIPTION_SYNC_INTERVAL_MS: "60000"
+    DESCRIPTION_SYNC_LIMIT: "10"
+    SYNC_RELATIONS: "true"

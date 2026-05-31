@@ -1,0 +1,61 @@
+# k3s/Traefik oriented override example for Second Brain.
+
+image:
+  repository: harbor.homelab.robinjoon.xyz/second-brain/second-brain
+  tag: sha-a2c6c65
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: harbor-pull-secret
+
+config:
+  env:
+    NODE_ENV: production
+    PORT: "3000"
+    HOSTNAME: "0.0.0.0"
+    AUTH_MODE: required
+    AI_MODEL: gpt-5.5
+    AI_API_MODE: chat
+    DESCRIPTION_SYNC_INTERVAL_MS: "60000"
+    DESCRIPTION_SYNC_LIMIT: "10"
+    SYNC_RELATIONS: true
+
+secretRefs:
+  existingSecret: second-brain-env
+  create: false
+
+app:
+  replicaCount: 1
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+
+worker:
+  enabled: true
+  replicaCount: 1
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations: {}
+  hosts:
+    - host: second-brain.robinjoon.xyz
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+migration:
+  enabled: true
+  runSeed: false
+  useHelmHooks: false
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+
+persistence:
+  enabled: false

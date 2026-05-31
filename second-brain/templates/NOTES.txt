@@ -1,0 +1,30 @@
+Second Brain has been installed.
+
+App:
+  kubectl -n {{ .Release.Namespace }} get deploy {{ include "second-brain.fullname" . }}
+  kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "second-brain.fullname" . }}
+
+Worker:
+{{- if .Values.worker.enabled }}
+  kubectl -n {{ .Release.Namespace }} get deploy {{ include "second-brain.fullname" . }}-worker
+  kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "second-brain.fullname" . }}-worker
+{{- else }}
+  disabled
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+Ingress:
+{{- range .Values.ingress.hosts }}
+  {{- if .host }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+  {{- end }}
+{{- end }}
+{{- else }}
+Port forward:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "second-brain.fullname" . }} 3000:{{ .Values.service.port }}
+{{- end }}
+
+Required Secret keys for production:
+  DATABASE_URL, AI_API_KEY, AUTH_SECRET, AUTH_USERNAME,
+  AUTH_PASSWORD_HASH, APP_INTERNAL_API_TOKEN
+

@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "image": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "repository": { "type": "string" },
+        "pullPolicy": { "type": "string" },
+        "tag": { "type": "string" }
+      }
+    },
+    "imagePullSecrets": { "type": "array" },
+    "nameOverride": { "type": "string" },
+    "fullnameOverride": { "type": "string" },
+    "serviceAccount": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "create": { "type": "boolean" },
+        "annotations": { "type": "object" },
+        "name": { "type": "string" }
+      }
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "env": {
+          "type": "object",
+          "additionalProperties": {
+            "type": ["string", "number", "boolean"]
+          }
+        },
+        "extraEnv": { "type": "array" },
+        "extraEnvFrom": { "type": "array" }
+      }
+    },
+    "secretRefs": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "existingSecret": { "type": "string" },
+        "create": { "type": "boolean" },
+        "env": {
+          "type": "object",
+          "additionalProperties": {
+            "type": ["string", "number", "boolean"]
+          }
+        }
+      }
+    },
+    "aiProxy": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "mode": { "type": "string", "enum": ["internal", "external"] },
+        "useAsAppAiBaseUrl": { "type": "boolean" },
+        "baseUrl": { "type": "string" },
+        "service": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "name": { "type": "string" },
+            "type": { "type": "string" },
+            "port": { "type": "integer" },
+            "targetPort": { "type": ["string", "integer"] },
+            "annotations": { "type": "object" }
+          }
+        },
+        "external": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "addressType": { "type": "string", "enum": ["IPv4", "IPv6", "FQDN"] },
+            "addresses": { "type": "array", "items": { "type": "string" } },
+            "port": { "type": "integer" }
+          }
+        },
+        "internal": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "image": { "type": "object" },
+            "replicaCount": { "type": "integer" },
+            "command": { "type": "array" },
+            "args": { "type": "array" },
+            "annotations": { "type": "object" },
+            "podAnnotations": { "type": "object" },
+            "podLabels": { "type": "object" },
+            "strategy": { "type": "object" },
+            "env": { "type": "array" },
+            "envFrom": { "type": "array" },
+            "existingConfigSecret": { "type": "string" },
+            "configSecretKey": { "type": "string" },
+            "config": { "type": "string" },
+            "persistence": { "type": "object" },
+            "logsPersistence": { "type": "object" },
+            "resources": { "type": "object" },
+            "probes": { "type": "object" }
+          }
+        }
+      }
+    },
+    "app": { "$ref": "#/definitions/workload" },
+    "worker": {
+      "allOf": [
+        { "$ref": "#/definitions/workload" },
+        {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "appBaseUrl": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "type": { "type": "string" },
+        "port": { "type": "integer" },
+        "targetPort": { "type": ["string", "integer"] },
+        "annotations": { "type": "object" }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "className": { "type": "string" },
+        "annotations": { "type": "object" },
+        "hosts": { "type": "array" },
+        "tls": { "type": "array" }
+      }
+    },
+    "migration": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "runSeed": { "type": "boolean" },
+        "useHelmHooks": { "type": "boolean" },
+        "annotations": { "type": "object" },
+        "backoffLimit": { "type": "integer" },
+        "activeDeadlineSeconds": { "type": "integer" },
+        "ttlSecondsAfterFinished": { "type": "integer" },
+        "command": { "type": "array" },
+        "args": { "type": "array" },
+        "extraEnv": { "type": "array" },
+        "extraEnvFrom": { "type": "array" }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "existingClaim": { "type": "string" },
+        "storageClass": { "type": "string" },
+        "accessModes": { "type": "array" },
+        "size": { "type": "string" },
+        "mountPath": { "type": "string" },
+        "annotations": { "type": "object" }
+      }
+    }
+  },
+  "definitions": {
+    "workload": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "replicaCount": { "type": "integer" },
+        "command": { "type": "array" },
+        "args": { "type": "array" },
+        "annotations": { "type": "object" },
+        "podAnnotations": { "type": "object" },
+        "podLabels": { "type": "object" },
+        "strategy": { "type": "object" },
+        "terminationGracePeriodSeconds": { "type": "integer" },
+        "extraEnv": { "type": "array" },
+        "extraEnvFrom": { "type": "array" },
+        "extraVolumeMounts": { "type": "array" },
+        "extraVolumes": { "type": "array" },
+        "resources": { "type": "object" },
+        "probes": { "type": "object" }
+      }
+    }
+  }
+}

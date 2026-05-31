@@ -1,0 +1,48 @@
+{{- if and .Values.aiProxy.enabled (eq .Values.aiProxy.mode "internal") .Values.aiProxy.internal.persistence.enabled (not .Values.aiProxy.internal.persistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "second-brain.aiProxyAuthPvcName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "second-brain.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-proxy
+  {{- with .Values.aiProxy.internal.persistence.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    {{- toYaml .Values.aiProxy.internal.persistence.accessModes | nindent 4 }}
+  {{- if .Values.aiProxy.internal.persistence.storageClass }}
+  storageClassName: {{ .Values.aiProxy.internal.persistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.aiProxy.internal.persistence.size | quote }}
+{{- end }}
+{{- if and .Values.aiProxy.enabled (eq .Values.aiProxy.mode "internal") .Values.aiProxy.internal.logsPersistence.enabled (not .Values.aiProxy.internal.logsPersistence.existingClaim) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "second-brain.aiProxyLogsPvcName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "second-brain.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-proxy
+  {{- with .Values.aiProxy.internal.logsPersistence.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  accessModes:
+    {{- toYaml .Values.aiProxy.internal.logsPersistence.accessModes | nindent 4 }}
+  {{- if .Values.aiProxy.internal.logsPersistence.storageClass }}
+  storageClassName: {{ .Values.aiProxy.internal.logsPersistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.aiProxy.internal.logsPersistence.size | quote }}
+{{- end }}
+

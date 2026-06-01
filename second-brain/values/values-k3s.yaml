@@ -19,6 +19,8 @@ config:
     DESCRIPTION_SYNC_INTERVAL_MS: "60000"
     DESCRIPTION_SYNC_LIMIT: "10"
     SYNC_RELATIONS: true
+    # OAuth/MCP 커넥터 디스커버리·issuer·리디렉트의 공개 base URL (ingress 호스트와 일치).
+    APP_PUBLIC_URL: https://second-brain.robinjoon.xyz
 
 secretRefs:
   existingSecret: second-brain-env

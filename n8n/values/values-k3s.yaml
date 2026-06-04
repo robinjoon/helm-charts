@@ -1,7 +1,7 @@
 # 커스텀 이미지 (Codex CLI 포함)
 image:
   repository: harbor.homelab.robinjoon.xyz/library/n8n
-  tag: "sha-47561c1"
+  tag: "sha-8bc89ee"
   pullSecrets:
     - name: harbor-pull-secret
 

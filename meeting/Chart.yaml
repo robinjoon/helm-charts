@@ -3,4 +3,4 @@ name: meeting
 description: 일회성 날짜/시간 예약 시스템 (2026-06-15 ~ 06-25, 인메모리)
 type: application
 version: 0.1.0
-appVersion: "sha-2033152"
+appVersion: "sha-e62950a"

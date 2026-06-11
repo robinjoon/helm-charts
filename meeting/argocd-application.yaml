@@ -1,0 +1,22 @@
+# kubectl apply -f argocd-application.yaml 로 등록하는 참조용 매니페스트.
+# (second-brain 과 동일하게 Application 은 kubectl 로 직접 적용한다)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: meeting
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/robinjoon/helm-charts.git
+    targetRevision: main
+    path: meeting
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: meeting
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,48 @@
+image:
+  repository: ghcr.io/robinjoon/meeting
+  pullPolicy: IfNotPresent
+  tag: "sha-e63d6aa"
+
+imagePullSecrets:
+  - name: ghcr-pull-secret
+
+nameOverride: ""
+fullnameOverride: ""
+
+# 인메모리 저장소라 반드시 단일 레플리카 + Recreate 전략을 유지해야 한다.
+replicaCount: 1
+
+podAnnotations: {}
+podLabels: {}
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65532
+  capabilities:
+    drop:
+      - ALL
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 16Mi
+  limits:
+    memory: 64Mi
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations: {}
+  hosts:
+    - host: meeting.robinjoon.xyz
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []

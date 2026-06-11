@@ -1,10 +1,15 @@
 image:
   repository: ghcr.io/robinjoon/meeting
   pullPolicy: IfNotPresent
-  tag: "sha-ede5038"
+  tag: "sha-2033152"
 
 imagePullSecrets:
   - name: ghcr-pull-secret
+
+admin:
+  # 마스터 비밀번호(key: ADMIN_PASSWORD)를 담은 Secret 이름.
+  # Secret 은 kubectl 로 직접 만들고 값은 git 에 두지 않는다.
+  existingSecret: meeting-admin
 
 nameOverride: ""
 fullnameOverride: ""

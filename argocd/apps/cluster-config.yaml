@@ -1,0 +1,27 @@
+# Raw cluster config (no charts): cert-manager ClusterIssuers, Argo CD ingress,
+# Headlamp viewer RBAC. None of these contain secrets — they reference
+# out-of-band Secrets by name only.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cluster-config
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/robinjoon/helm-charts
+    path: manifests/cluster-config
+    targetRevision: main
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

@@ -1,0 +1,25 @@
+# Root app-of-apps. Bootstrap once with `kubectl apply -f argocd/root.yaml`;
+# afterwards Argo CD manages every child Application under argocd/apps from Git.
+# NOTE: operators (cert-manager, cnpg-operator) and Argo CD itself are the
+# bootstrap layer and are installed directly — intentionally NOT managed here.
+# NOTE: no Secrets live in Git — they are created out-of-band (kubectl).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/robinjoon/helm-charts
+    path: argocd/apps
+    targetRevision: main
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

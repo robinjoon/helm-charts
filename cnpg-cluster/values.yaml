@@ -31,17 +31,21 @@ cluster:
     parameters:
       max_connections: "100"
 
-  # Initial bootstrap database/owner. CNPG auto-generates Secret `<cluster>-app`
-  # (here: `pg-app`) with username `app` — not stored in Git.
+  # Rendered as-is into Cluster.spec.bootstrap (toYaml), so the whole CNPG
+  # bootstrap surface is available — e.g. switch to `recovery:` to restore from
+  # a backup, or `initdb.import:` to migrate from an existing PostgreSQL.
+  # Default: fresh `app` database/owner; CNPG auto-generates Secret `pg-app`.
   bootstrap:
-    database: app
-    owner: app
+    initdb:
+      database: app
+      owner: app
 
 # Per-app databases sharing this single cluster (light isolation: one DB + one
 # owner role per app, no separate clusters).
 #
 # Each entry creates:
-#   - a login role `<name>` whose password is read from Secret `cnpg-role-<name>`
+#   - a login role `<name>` whose password is read from a Secret
+#     (default name `cnpg-role-<name>`; override per entry with `passwordSecretName`)
 #   - a database `<name>` owned by that role
 #
 # The Secret is sensitive and is created OUT OF BAND (not in this chart), e.g.:
@@ -52,3 +56,4 @@ cluster:
 databases: []
 #   - name: n8n
 #   - name: second-brain
+#     passwordSecretName: my-existing-secret  # optional override

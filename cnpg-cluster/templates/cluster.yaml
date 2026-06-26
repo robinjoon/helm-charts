@@ -3,6 +3,8 @@ kind: Cluster
 metadata:
   name: {{ .Values.cluster.name }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cnpg-cluster.labels" . | nindent 4 }}
 spec:
   instances: {{ .Values.cluster.instances }}
   {{- with .Values.cluster.imageName }}
@@ -21,10 +23,10 @@ spec:
   postgresql:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{- with .Values.cluster.bootstrap }}
   bootstrap:
-    initdb:
-      database: {{ .Values.cluster.bootstrap.database }}
-      owner: {{ .Values.cluster.bootstrap.owner }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   {{- with .Values.databases }}
   managed:
     roles:
@@ -33,6 +35,6 @@ spec:
         ensure: present
         login: true
         passwordSecret:
-          name: cnpg-role-{{ .name }}
+          name: {{ .passwordSecretName | default (printf "cnpg-role-%s" .name) }}
       {{- end }}
   {{- end }}

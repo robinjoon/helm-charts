@@ -2,8 +2,8 @@ apiVersion: v2
 name: cnpg-cluster
 description: Shared PostgreSQL (CloudNativePG) cluster + per-app databases/roles for the homelab
 type: application
-version: 0.1.0
-appVersion: "17"
+version: 0.1.1
+appVersion: "18"
 keywords:
   - postgresql
   - cloudnative-pg

@@ -12,9 +12,9 @@ cluster:
   name: pg
   instances: 1
 
-  # Leave empty to use the operator's default (maintained) PostgreSQL image.
-  # Override to pin, e.g. "ghcr.io/cloudnative-pg/postgresql:17.6".
-  imageName: ""
+  # Pinned for reproducibility (avoids a surprise major-version jump when the
+  # operator default changes). Bump deliberately to take new PostgreSQL releases.
+  imageName: "ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie"
 
   storage:
     size: 5Gi

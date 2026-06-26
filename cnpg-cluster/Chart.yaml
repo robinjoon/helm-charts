@@ -1,0 +1,16 @@
+apiVersion: v2
+name: cnpg-cluster
+description: Shared PostgreSQL (CloudNativePG) cluster + per-app databases/roles for the homelab
+type: application
+version: 0.1.0
+appVersion: "17"
+keywords:
+  - postgresql
+  - cloudnative-pg
+  - cnpg
+  - database
+home: https://cloudnative-pg.io
+sources:
+  - https://github.com/robinjoon/helm-charts/tree/main/cnpg-cluster
+maintainers:
+  - name: robinjoon

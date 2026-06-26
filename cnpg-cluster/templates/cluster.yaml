@@ -1,0 +1,40 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Values.cluster.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "cnpg-cluster.labels" . | nindent 4 }}
+spec:
+  instances: {{ .Values.cluster.instances }}
+  {{- with .Values.cluster.imageName }}
+  imageName: {{ . }}
+  {{- end }}
+  storage:
+    size: {{ .Values.cluster.storage.size }}
+    {{- with .Values.cluster.storage.storageClass }}
+    storageClass: {{ . }}
+    {{- end }}
+  {{- with .Values.cluster.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.cluster.postgresql }}
+  postgresql:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.cluster.bootstrap }}
+  bootstrap:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.databases }}
+  managed:
+    roles:
+      {{- range . }}
+      - name: {{ .name }}
+        ensure: present
+        login: true
+        passwordSecret:
+          name: {{ .passwordSecretName | default (printf "cnpg-role-%s" .name) }}
+      {{- end }}
+  {{- end }}

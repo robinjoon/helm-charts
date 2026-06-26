@@ -1,0 +1,17 @@
+{{- range .Values.databases }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  # Prefixed with the cluster name to avoid collisions if another cluster
+  # lives in the same namespace. The actual DB name (spec.name) is unchanged.
+  name: {{ $.Values.cluster.name }}-{{ .name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "cnpg-cluster.labels" $ | nindent 4 }}
+spec:
+  name: {{ .name }}
+  owner: {{ .name }}
+  cluster:
+    name: {{ $.Values.cluster.name }}
+{{- end }}

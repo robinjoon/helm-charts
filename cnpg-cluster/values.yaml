@@ -1,0 +1,59 @@
+# Shared CloudNativePG cluster for the homelab.
+#
+# Prerequisite: the CloudNativePG operator must already be installed
+# (Helm chart cnpg/cloudnative-pg). This chart only declares a Cluster and
+# per-app Databases/roles — NOT the operator.
+#
+# Secrets policy: this chart NEVER contains passwords. CNPG auto-generates the
+# superuser/app secret. Per-app role passwords come from out-of-band Secrets
+# referenced by name only (see `databases` below).
+
+cluster:
+  name: pg
+  instances: 1
+
+  # Leave empty to use the operator's default (maintained) PostgreSQL image.
+  # Override to pin, e.g. "ghcr.io/cloudnative-pg/postgresql:17.6".
+  imageName: ""
+
+  storage:
+    size: 5Gi
+    storageClass: local-path # k3s default StorageClass
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+  postgresql:
+    parameters:
+      max_connections: "100"
+
+  # Rendered as-is into Cluster.spec.bootstrap (toYaml), so the whole CNPG
+  # bootstrap surface is available — e.g. switch to `recovery:` to restore from
+  # a backup, or `initdb.import:` to migrate from an existing PostgreSQL.
+  # Default: fresh `app` database/owner; CNPG auto-generates Secret `pg-app`.
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+
+# Per-app databases sharing this single cluster (light isolation: one DB + one
+# owner role per app, no separate clusters).
+#
+# Each entry creates:
+#   - a login role `<name>` whose password is read from a Secret
+#     (default name `cnpg-role-<name>`; override per entry with `passwordSecretName`)
+#   - a database `<name>` owned by that role
+#
+# The Secret is sensitive and is created OUT OF BAND (not in this chart), e.g.:
+#   kubectl -n <namespace> create secret generic cnpg-role-n8n \
+#     --type kubernetes.io/basic-auth \
+#     --from-literal=username=n8n \
+#     --from-literal=password="$(openssl rand -base64 24)"
+databases: []
+#   - name: n8n
+#   - name: second-brain
+#     passwordSecretName: my-existing-secret  # optional override

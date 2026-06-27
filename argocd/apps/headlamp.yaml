@@ -19,14 +19,14 @@ spec:
           annotations:
             cert-manager.io/cluster-issuer: letsencrypt-prod
           hosts:
-            - host: headlamp.homelab.robinjoon.xyz
+            - host: dashboard.homelab.robinjoon.xyz
               paths:
                 - path: /
                   type: Prefix
           tls:
             - secretName: headlamp-tls
               hosts:
-                - headlamp.homelab.robinjoon.xyz
+                - dashboard.homelab.robinjoon.xyz
   destination:
     server: https://kubernetes.default.svc
     namespace: headlamp

@@ -13,11 +13,20 @@ spec:
     targetRevision: 0.43.0
     helm:
       valuesObject:
+        # Token-less: Headlamp authenticates as its pod ServiceAccount (no token
+        # prompt). Safe only behind the Traefik basic-auth gate below.
+        config:
+          unsafeUseServiceAccountToken: true
+        # Bind that pod SA to read-only (reuses the headlamp-readonly ClusterRole).
+        clusterRoleBinding:
+          clusterRoleName: headlamp-readonly
         ingress:
           enabled: true
           ingressClassName: traefik
           annotations:
             cert-manager.io/cluster-issuer: letsencrypt-prod
+            # Traefik basic-auth gate (your username/password). Secret is out-of-band.
+            traefik.ingress.kubernetes.io/router.middlewares: headlamp-dashboard-auth@kubernetescrd
           hosts:
             - host: dashboard.homelab.robinjoon.xyz
               paths:

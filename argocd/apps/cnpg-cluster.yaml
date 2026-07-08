@@ -16,6 +16,15 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: databases
+  # CNPG 오퍼레이터가 managed.roles 각 항목에 기본값(connectionLimit: -1, inherit: true)을
+  # 주입하는데, 이는 차트에 없어 영구 OutOfSync 로 잡힌다. 해당 기본 필드만 diff 에서 무시한다.
+  # (role 자체의 add/remove·name/login/passwordSecret 변경은 그대로 감지됨)
+  ignoreDifferences:
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jqPathExpressions:
+        - .spec.managed.roles[]?.connectionLimit
+        - .spec.managed.roles[]?.inherit
   syncPolicy:
     automated:
       prune: true

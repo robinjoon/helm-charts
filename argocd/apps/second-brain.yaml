@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: second-brain
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/robinjoon/helm-charts
+    path: second-brain
+    targetRevision: main
+    helm:
+      # values-k3s: k3s/Traefik 오버레이(이미지·ingress·시크릿 참조·마이그레이션 sync-wave)
+      # values-ai-proxy-external-macmini: 외부 AI 프록시(mac mini 192.168.0.149:8317)를
+      #   in-cluster Service+Endpoints 로 노출, AI_BASE_URL 주입. (AI 키는 프록시가 보유)
+      valueFiles:
+        - values/values-k3s.yaml
+        - values/values-ai-proxy-external-macmini.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: second-brain
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

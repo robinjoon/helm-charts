@@ -56,14 +56,15 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: registry
-  # StatefulSet 의 volumeClaimTemplates 는 불변 필드라, 쿠버네티스가 라이브에 주입하는
-  # volumeMode: Filesystem 기본값을 ArgoCD 가 되돌릴 수 없어 영구 OutOfSync 로 표시된다.
-  # 기능 무관한 표시 차이이므로 해당 필드만 diff 에서 무시한다.
+  # StatefulSet 의 volumeClaimTemplates 는 불변 필드다. 쿠버네티스가 라이브에
+  # apiVersion/kind/status/spec.volumeMode 기본값을 주입하는데, 불변이라 ArgoCD 가
+  # 되돌릴 수 없어 영구 OutOfSync 로 표시된다. 어차피 변경하려면 STS 재생성이 필요하므로
+  # 이 서브트리 전체를 diff 에서 무시한다(기능 무관한 표시 차이).
   ignoreDifferences:
     - group: apps
       kind: StatefulSet
-      jqPathExpressions:
-        - '.spec.volumeClaimTemplates[]?.spec.volumeMode'
+      jsonPointers:
+        - /spec/volumeClaimTemplates
   syncPolicy:
     automated:
       prune: true

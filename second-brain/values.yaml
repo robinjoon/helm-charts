@@ -1,7 +1,7 @@
 # Default values for second-brain.
 
 image:
-  repository: harbor.homelab.robinjoon.xyz/second-brain/second-brain
+  repository: registry.homelab.robinjoon.xyz/second-brain/second-brain
   pullPolicy: IfNotPresent
   tag: "sha-fa45b46"
 

@@ -41,13 +41,13 @@ kubectl -n second-brain create secret generic second-brain-env \
 
 `AUTH_PASSWORD_HASH`는 앱 README의 scrypt 생성 명령으로 만들 수 있습니다. 개발 확인용으로만 `AUTH_PASSWORD`를 사용할 수 있고, 운영에서는 `AUTH_PASSWORD_HASH`를 권장합니다.
 
-Harbor private registry에서 이미지를 당겨오려면 namespace에 pull secret도 필요합니다. `values/values-k3s.yaml`은 기본으로 `harbor-pull-secret`을 참조합니다.
+사설 레지스트리(Zot)에서 이미지를 당겨오려면 namespace에 pull secret도 필요합니다. `values/values-k3s.yaml`은 기본으로 `regcred`를 참조합니다.
 
 ```bash
-kubectl -n second-brain create secret docker-registry harbor-pull-secret \
-  --docker-server=harbor.homelab.robinjoon.xyz \
-  --docker-username='<harbor-username>' \
-  --docker-password='<harbor-password>'
+kubectl -n second-brain create secret docker-registry regcred \
+  --docker-server=registry.homelab.robinjoon.xyz \
+  --docker-username='<registry-username>' \
+  --docker-password='<registry-password>'
 ```
 
 OpenAI 호환 로컬 proxy를 쓰는 경우:
@@ -245,7 +245,7 @@ kubectl -n second-brain rollout restart deploy/second-brain-worker
 
 | 값 | 설명 | 기본값 |
 | --- | --- | --- |
-| `image.repository` | Second Brain 이미지 | `harbor.homelab.robinjoon.xyz/second-brain/second-brain` |
+| `image.repository` | Second Brain 이미지 | `registry.homelab.robinjoon.xyz/second-brain/second-brain` |
 | `imagePullSecrets` | private registry pull secret 목록 | `[]` |
 | `config.env.AUTH_MODE` | 인증 모드 | `disabled` |
 | `secretRefs.existingSecret` | env 키를 담은 기존 Secret 이름 | `""` |

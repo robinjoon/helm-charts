@@ -1,12 +1,12 @@
 # k3s/Traefik oriented override example for Second Brain.
 
 image:
-  repository: harbor.homelab.robinjoon.xyz/second-brain/second-brain
+  repository: registry.homelab.robinjoon.xyz/second-brain/second-brain
   tag: "sha-b25ac1a"
   pullPolicy: IfNotPresent
 
 imagePullSecrets:
-  - name: harbor-pull-secret
+  - name: regcred
 
 config:
   env:

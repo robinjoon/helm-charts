@@ -1,0 +1,65 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: registry
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # Zot: 경량 OCI 사설 레지스트리 (Harbor 대체). classic HTTP helm repo.
+    repoURL: https://zotregistry.dev/helm-charts
+    chart: zot
+    targetRevision: 0.1.121
+    helm:
+      valuesObject:
+        # Ingress(Traefik)가 앞단이므로 Service는 ClusterIP.
+        service:
+          type: ClusterIP
+          port: 5000
+
+        # 이미지 레이어 영속화 → StatefulSet + volumeClaimTemplate (local-path 기본 SC).
+        persistence: true
+        pvc:
+          create: true
+          storage: 20Gi
+
+        # 전체 config.json(username·accessControl 포함)을 Git 이 아니라 out-of-band Secret 에서
+        # 주입한다. 차트가 관리하지 않는(externalSecrets) Secret 두 개를 마운트:
+        #   - zot-config  (key: config.json) → /etc/zot/config.json  : storage·auth·accessControl·zui
+        #   - zot-htpasswd(key: htpasswd)    → /secret/htpasswd       : bcrypt 비밀번호
+        # 두 Secret 모두 kubectl 로 생성(registry ns). Git 에는 Secret 이름 참조만 남고
+        # username·비밀번호·해시가 일절 포함되지 않는다. (레포가 public 이므로 username 도 숨김)
+        mountConfig: false
+        externalSecrets:
+          - secretName: zot-config
+            mountPath: /etc/zot
+          - secretName: zot-htpasswd
+            mountPath: /secret
+
+        # Traefik ingress + cert-manager(Cloudflare DNS-01) 자동 TLS. zui 웹 UI 동일 호스트.
+        ingress:
+          enabled: true
+          className: traefik
+          pathtype: Prefix
+          annotations:
+            cert-manager.io/cluster-issuer: letsencrypt-prod
+          hosts:
+            - host: registry.homelab.robinjoon.xyz
+              paths:
+                - path: /
+          tls:
+            - hosts:
+                - registry.homelab.robinjoon.xyz
+              secretName: registry-tls
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: registry
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

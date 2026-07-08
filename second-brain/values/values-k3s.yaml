@@ -44,13 +44,18 @@ service:
 ingress:
   enabled: true
   className: traefik
-  annotations: {}
+  annotations:
+    # cert-manager 가 letsencrypt-prod(Cloudflare DNS-01)로 second-brain-tls 발급.
+    cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
     - host: second-brain.robinjoon.xyz
       paths:
         - path: /
           pathType: Prefix
-  tls: []
+  tls:
+    - secretName: second-brain-tls
+      hosts:
+        - second-brain.robinjoon.xyz
 
 migration:
   enabled: true

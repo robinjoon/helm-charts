@@ -2,7 +2,7 @@
 
 image:
   repository: registry.homelab.robinjoon.xyz/second-brain/second-brain
-  tag: "sha-959e511"
+  tag: "sha-0e9167b"
   pullPolicy: IfNotPresent
 
 imagePullSecrets:

@@ -25,47 +25,180 @@ data:
     }
 
   index.js: |
-    /**
-     * Matter Multi-Sensor Weather Station
-     *
-     * This creates a virtual Matter device with multiple sensors:
-     * - Temperature sensor
-     * - Humidity sensor
-     * - Pressure sensor
-     *
-     * All sensors report real-time data from OpenWeatherMap API.
-     * Data is fetched every 10 minutes and updated automatically.
-     */
-
-    import { Endpoint, Environment, ServerNode, StorageService } from "@matter/main";
-    import { TemperatureMeasurementServer, RelativeHumidityMeasurementServer, PressureMeasurementServer } from "@matter/main/behaviors";
+    import { Endpoint, Environment, Logger, ServerNode, StorageService, Time } from "@matter/main";
     import { TemperatureSensorDevice, HumiditySensorDevice, PressureSensorDevice } from "@matter/main/devices";
-    import { VendorId } from "@matter/main/types";
+    import { DeviceTypeId, VendorId } from "@matter/main/types";
 
-    // Configuration
-    const DEVICE_NAME = "Weather Station";
-    const VENDOR_NAME = "HomeLabIoT";
-    const VENDOR_ID = 0xfff1; // Test Vendor ID
-    const PRODUCT_NAME = "Matter Weather Station";
-    const PRODUCT_ID = 0x8001;
-
-    // Matter protocol port (can be customized for multiple sensors)
-    const MATTER_PORT = parseInt(process.env.MATTER_PORT || "5540", 10);
+    const logger = Logger.get("WeatherStationNode");
 
     // OpenWeatherMap API Configuration
     const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
+    // Seoul Coordinates
     const LATITUDE = 37.324146498307215;
     const LONGITUDE = 127.09286670930126;
-    const UPDATE_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
 
-    // Fallback values if API fails
-    const FALLBACK_TEMPERATURE = 10; // 10°C
-    const FALLBACK_HUMIDITY = 50; // 50%
-    const FALLBACK_PRESSURE = 1013; // 1013 hPa (standard atmospheric pressure)
+    // Fallback values
+    const FALLBACK_TEMPERATURE = 10;
+    const FALLBACK_HUMIDITY = 50;
+    const FALLBACK_PRESSURE = 1013;
+
+    async function main() {
+        /** Initialize configuration values */
+        const {
+            uniqueId,
+            port,
+            passcode,
+            discriminator,
+            vendorId,
+            productId,
+            deviceName,
+            productName,
+            vendorName,
+            interval
+        } = await getConfiguration();
+
+        /** * 초기 날씨 데이터 가져오기
+         * (서버 시작 전에 초기값을 확보하기 위함)
+         */
+        const initialData = await fetchWeatherData();
+
+        /**
+         * Create a Matter ServerNode
+         */
+        const server = await ServerNode.create({
+            // Required: Give the Node a unique ID which is used to store the state of this node
+            id: uniqueId,
+
+            // Provide Network relevant configuration like the port
+            network: {
+                port,
+            },
+
+            // Provide Commissioning relevant settings
+            commissioning: {
+                passcode,
+                discriminator,
+            },
+
+            // Provide Node announcement settings
+            productDescription: {
+                name: deviceName,
+                deviceType: DeviceTypeId(TemperatureSensorDevice.deviceType), // 대표 Device Type 설정
+            },
+
+            // Provide defaults for the BasicInformation cluster on the Root endpoint
+            basicInformation: {
+                vendorName,
+                vendorId: VendorId(vendorId),
+                nodeLabel: productName,
+                productName,
+                productLabel: productName,
+                productId,
+                serialNumber: `matterjs-${uniqueId}`,
+                uniqueId,
+            },
+        });
+
+        /**
+         * Endpoints 생성 및 추가
+         * 온도, 습도, 기압 센서 각각 생성
+         */
+
+            // 1. Temperature Sensor Endpoint
+        const temperatureEndpoint = new Endpoint(TemperatureSensorDevice, {
+                id: "temperature",
+                temperatureMeasurement: {
+                    measuredValue: Math.round(initialData.temperature * 100), // 0.01도 단위
+                    minMeasuredValue: -5000,
+                    maxMeasuredValue: 12000,
+                },
+            });
+
+        // 2. Humidity Sensor Endpoint
+        const humidityEndpoint = new Endpoint(HumiditySensorDevice, {
+            id: "humidity",
+            relativeHumidityMeasurement: {
+                measuredValue: Math.round(initialData.humidity * 100), // 0.01% 단위
+                minMeasuredValue: 0,
+                maxMeasuredValue: 10000,
+            },
+        });
+
+        // 3. Pressure Sensor Endpoint
+        const pressureEndpoint = new Endpoint(PressureSensorDevice, {
+            id: "pressure",
+            pressureMeasurement: {
+                measuredValue: Math.round(initialData.pressure * 10), // 0.1 hPa 단위
+                minMeasuredValue: 8000,
+                maxMeasuredValue: 12000,
+            },
+        });
+
+        await server.add(temperatureEndpoint);
+        await server.add(humidityEndpoint);
+        await server.add(pressureEndpoint);
+
+        /**
+         * Log the endpoint structure for debugging
+         */
+        logger.info("Endpoints created and added to server.");
+
+        /**
+         * 주기적 업데이트 로직 (setInterval)
+         */
+        let updateCount = 0;
+        const updateInterval = setInterval(async () => {
+            try {
+                updateCount++;
+                const now = new Date().toLocaleTimeString();
+
+                // 데이터 가져오기
+                const weatherData = await fetchWeatherData();
+
+                // 각 엔드포인트 값 업데이트
+                await temperatureEndpoint.set({
+                    temperatureMeasurement: {
+                        measuredValue: Math.round(weatherData.temperature * 100)
+                    }
+                });
+
+                await humidityEndpoint.set({
+                    relativeHumidityMeasurement: {
+                        measuredValue: Math.round(weatherData.humidity * 100)
+                    }
+                });
+
+                await pressureEndpoint.set({
+                    pressureMeasurement: {
+                        measuredValue: Math.round(weatherData.pressure * 10)
+                    }
+                });
+
+                console.log(`[${now}] Update #${updateCount} Success: Temp ${weatherData.temperature}°C, Hum ${weatherData.humidity}%, Press ${weatherData.pressure}hPa`);
+
+            } catch (error) {
+                console.error("Error updating sensor values:", error);
+            }
+        }, interval * 1000); // interval seconds * 1000 ms
+
+        // Cleanup our update interval when node goes offline
+        server.lifecycle.offline.on(() => clearTimeout(updateInterval));
+
+        /**
+         * Run Server
+         */
+        console.log(`Update interval set to ${interval} seconds.`);
+        await server.run();
+    }
+
+    main().catch(error => console.error(error));
+
+    /*********************************************************************************************************
+     * Convenience Methods & Helpers
+     *********************************************************************************************************/
 
     /**
      * Fetch current weather data from OpenWeatherMap API
-     * @returns {Promise<{temperature: number, humidity: number, pressure: number}>}
      */
     async function fetchWeatherData() {
         if (!OPENWEATHER_API_KEY) {
@@ -73,197 +206,89 @@ data:
             return {
                 temperature: FALLBACK_TEMPERATURE,
                 humidity: FALLBACK_HUMIDITY,
-                pressure: FALLBACK_PRESSURE
+                pressure: FALLBACK_PRESSURE,
+                location: "Fallback"
             };
         }
 
         try {
             const url = `https://api.openweathermap.org/data/2.5/weather?lat=${LATITUDE}&lon=${LONGITUDE}&appid=${OPENWEATHER_API_KEY}&units=metric`;
 
-            console.log(`Fetching weather data from OpenWeatherMap...`);
             const response = await fetch(url);
-
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json();
-            const temperature = data.main.temp;
-            const humidity = data.main.humidity;
-            const pressure = data.main.pressure;
-
-            console.log(`✓ Weather data received: ${temperature}°C, ${humidity}%, ${pressure}hPa (${data.weather[0].description})`);
-            console.log(`  Location: ${data.name}, ${data.sys.country}`);
-
-            return { temperature, humidity, pressure };
+            return {
+                temperature: data.main.temp,
+                humidity: data.main.humidity,
+                pressure: data.main.pressure,
+                location: data.name
+            };
         } catch (error) {
-            console.error(`✗ Failed to fetch weather data from OpenWeatherMap: ${error.message}`);
-            console.log(`Using fallback values: ${FALLBACK_TEMPERATURE}°C, ${FALLBACK_HUMIDITY}%, ${FALLBACK_PRESSURE}hPa`);
+            console.error(`✗ Failed to fetch weather data: ${error.message}`);
             return {
                 temperature: FALLBACK_TEMPERATURE,
                 humidity: FALLBACK_HUMIDITY,
-                pressure: FALLBACK_PRESSURE
+                pressure: FALLBACK_PRESSURE,
+                location: "Error"
             };
         }
     }
 
     /**
-     * Main function to create and start the Matter weather station
+     * Collect and persist configuration data
      */
-    async function main() {
-        console.log("Starting Matter Weather Station (OpenWeatherMap Integration)...");
-        console.log(`Matter port: ${MATTER_PORT}`);
-        console.log(`Location: Latitude ${LATITUDE}, Longitude ${LONGITUDE}`);
-        console.log(`Update interval: ${UPDATE_INTERVAL / 60000} minutes`);
+    async function getConfiguration() {
+        const environment = Environment.default;
+        const storageService = environment.get(StorageService);
 
-        try {
-            // Create Matter environment
-            const environment = Environment.default;
+        console.log(`Storage location: ${storageService.location} (Directory)`);
 
-            // Storage is automatically configured by the environment
-            const storageService = environment.get(StorageService);
-            console.log(`Storage location: ${storageService.location}`);
+        // "device" context 생성 및 데이터 로드
+        const deviceStorage = (await storageService.open("device")).createContext("data");
 
-            // Fetch initial weather data
-            const initialData = await fetchWeatherData();
-            console.log(`Initial data: ${initialData.temperature}°C, ${initialData.humidity}%, ${initialData.pressure}hPa`);
+        // 기본 설정값 로드 (환경 변수 -> 스토리지 -> 기본값 순서)
+        const interval = environment.vars.number("interval") ?? (await deviceStorage.get("interval", 600)); // 600초 기본
 
-            // Create the Matter server node
-            const serverNode = await ServerNode.create({
-                id: "weather-station-node",
-                network: {
-                    port: MATTER_PORT,
-                    advertiseOnStartup: true,
-                },
-                productDescription: {
-                    name: PRODUCT_NAME,
-                    deviceType: TemperatureSensorDevice.deviceType,
-                },
-                basicInformation: {
-                    vendorId: VendorId(VENDOR_ID),
-                    vendorName: VENDOR_NAME,
-                    productId: PRODUCT_ID,
-                    productName: PRODUCT_NAME,
-                    productLabel: DEVICE_NAME,
-                    serialNumber: "WS-HOMELAB-001",
-                    uniqueId: "homelab-weather-station-001",
-                },
-            });
+        const deviceName = "Weather Station";
+        const vendorName = "HomeLabIoT";
+        const productName = "Matter Weather Station";
 
-            // Create temperature sensor endpoint
-            const temperatureSensor = new Endpoint(TemperatureSensorDevice, {
-                id: "temperature",
-                temperatureMeasurement: {
-                    // Matter uses centi-degrees Celsius (1/100th of a degree)
-                    // So 10°C = 1000 centi-degrees
-                    measuredValue: Math.round(initialData.temperature * 100),
-                    minMeasuredValue: -5000, // -50°C
-                    maxMeasuredValue: 12000,  // 120°C
-                },
-            });
+        const passcode = environment.vars.number("passcode") ?? (await deviceStorage.get("passcode", 20202021));
+        const discriminator = environment.vars.number("discriminator") ?? (await deviceStorage.get("discriminator", 3840));
 
-            // Create humidity sensor endpoint
-            const humiditySensor = new Endpoint(HumiditySensorDevice, {
-                id: "humidity",
-                relativeHumidityMeasurement: {
-                    // Matter uses percentage * 100 (0-10000 range for 0-100%)
-                    measuredValue: Math.round(initialData.humidity * 100),
-                    minMeasuredValue: 0,      // 0%
-                    maxMeasuredValue: 10000,  // 100%
-                },
-            });
+        const vendorId = environment.vars.number("vendorid") ?? (await deviceStorage.get("vendorid", 0xfff1));
+        const productId = environment.vars.number("productid") ?? (await deviceStorage.get("productid", 0x8001));
 
-            // Create pressure sensor endpoint
-            const pressureSensor = new Endpoint(PressureSensorDevice, {
-                id: "pressure",
-                pressureMeasurement: {
-                    // Matter uses 1/10 hPa (decipascals)
-                    // So 1013 hPa = 10130 decipascals
-                    measuredValue: Math.round(initialData.pressure * 10),
-                    minMeasuredValue: 8000,   // 800 hPa
-                    maxMeasuredValue: 12000,  // 1200 hPa
-                },
-            });
+        const port = environment.vars.number("port") ?? 5540;
 
-            // Add all sensor endpoints to the server
-            await serverNode.add(temperatureSensor);
-            await serverNode.add(humiditySensor);
-            await serverNode.add(pressureSensor);
+        // Unique ID 생성 또는 로드 (재시작 시 동일 ID 유지 위함)
+        // Ensure uniqueId does not contain dots (Time.nowMs might return a float)
+        let uniqueId = environment.vars.string("uniqueid") ?? (await deviceStorage.get("uniqueid", Math.round(Time.nowMs).toString()));
+        uniqueId = uniqueId.replace(/\./g, "");
 
-            console.log("✓ Temperature sensor endpoint created");
-            console.log("✓ Humidity sensor endpoint created");
-            console.log("✓ Pressure sensor endpoint created");
+        // 중요 설정값 영구 저장
+        await deviceStorage.set({
+            passcode,
+            discriminator,
+            vendorid: vendorId,
+            productid: productId,
+            interval,
+            uniqueid: uniqueId,
+        });
 
-            // Start the Matter server
-            await serverNode.run();
-
-            console.log("✓ Matter Weather Station is running!");
-            console.log("✓ Device can now be commissioned and paired with Matter controllers");
-            console.log(`✓ Current readings:`);
-            console.log(`  - Temperature: ${initialData.temperature}°C`);
-            console.log(`  - Humidity: ${initialData.humidity}%`);
-            console.log(`  - Pressure: ${initialData.pressure}hPa`);
-            console.log("");
-
-            // Update all sensors periodically from OpenWeatherMap API
-            let updateCount = 0;
-            setInterval(async () => {
-                updateCount++;
-                console.log(`\n[Update #${updateCount}] Updating weather data...`);
-
-                const weatherData = await fetchWeatherData();
-
-                try {
-                    // Update temperature sensor
-                    await temperatureSensor.set({
-                        temperatureMeasurement: {
-                            measuredValue: Math.round(weatherData.temperature * 100)
-                        }
-                    });
-                    console.log(`✓ Temperature updated: ${weatherData.temperature}°C`);
-
-                    // Update humidity sensor
-                    await humiditySensor.set({
-                        relativeHumidityMeasurement: {
-                            measuredValue: Math.round(weatherData.humidity * 100)
-                        }
-                    });
-                    console.log(`✓ Humidity updated: ${weatherData.humidity}%`);
-
-                    // Update pressure sensor
-                    await pressureSensor.set({
-                        pressureMeasurement: {
-                            measuredValue: Math.round(weatherData.pressure * 10)
-                        }
-                    });
-                    console.log(`✓ Pressure updated: ${weatherData.pressure}hPa`);
-
-                } catch (error) {
-                    console.error(`✗ Failed to update sensors: ${error.message}`);
-                }
-
-                console.log(`Next update in ${UPDATE_INTERVAL / 60000} minutes\n`);
-            }, UPDATE_INTERVAL);
-
-        } catch (error) {
-            console.error("Error starting Matter Weather Station:", error);
-            process.exit(1);
-        }
+        return {
+            uniqueId,
+            port,
+            passcode,
+            discriminator,
+            vendorId,
+            productId,
+            deviceName,
+            productName,
+            vendorName,
+            interval
+        };
     }
-
-    // Handle shutdown gracefully
-    process.on('SIGINT', () => {
-        console.log("\nShutting down Matter Weather Station...");
-        process.exit(0);
-    });
-
-    process.on('SIGTERM', () => {
-        console.log("\nShutting down Matter Weather Station...");
-        process.exit(0);
-    });
-
-    // Start the application
-    main().catch((error) => {
-        console.error("Fatal error:", error);
-        process.exit(1);
-    });
